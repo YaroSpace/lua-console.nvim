@@ -46,5 +46,5 @@ end
 
 return {
   append_current_buffer = append_current_buffer,
-  eval_lua_in_buffer = eval_lua_in_buffer
+  eval_lua_in_buffer = eval_lua_in_buffer,
 }

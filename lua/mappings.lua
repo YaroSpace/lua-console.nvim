@@ -11,8 +11,8 @@ M.set_buf_keymap = function(buf)
   vim.api.nvim_buf_set_keymap(buf, "n", "k", "", {
     desc = "Move up",
     callback = function()
-      local new_pos = math.max(2, vim.api.nvim_win_get_cursor(0)[1] - 1)
-      vim.api.nvim_win_set_cursor(0, { new_pos, 0 })
+      if vim.api.nvim_win_get_cursor(0)[1] == 2 then return end
+      vim.api.nvim_feedkeys('k', 'n', false)
     end
   })
 
@@ -42,6 +42,27 @@ M.set_buf_keymap = function(buf)
     buffer = buf,
     desc = "Eval lua code in current line or visual selection",
     callback = utils.eval_lua_in_buffer
+  })
+
+  vim.keymap.set({"n"}, config.mappings.save, "", {
+    buffer = buf,
+    desc = "Save console",
+    callback = function()
+      local path = vim.fn.stdpath('state') .. '/lua-console.lua'
+      vim.cmd('write! ' .. path)
+    end
+  })
+
+  vim.keymap.set({"n"}, config.mappings.load, "", {
+    buffer = buf,
+    desc = "Load console",
+    callback = function()
+      local path = vim.fn.stdpath('state') .. '/lua-console.lua'
+      if vim.fn.filereadable(path) == 0 then return end
+
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+      vim.cmd(':0read ' .. path)
+    end
   })
 end
 

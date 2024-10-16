@@ -2,10 +2,11 @@ local config = require('config')
 local mappings = require('mappings')
 
 local set_welcome_message = function(buf)
-  local message = "-- Use '%s' to eval a line or selection, '%s' to clear the console, '%s', to load messages."
-  message = string.format(message, config.mappings.eval, config.mappings.clear, config.mappings.messages)
+  local message = [[-- Use '%s' to eval a line or selection, '%s' to clear the console, '%s' to load messages, '%s' to save console, '%s' to load console.]]
+  message = string.format(message, config.mappings.eval, config.mappings.clear,
+    config.mappings.messages, config.mappings.save, config.mappings.load)
 
-  vim.api.nvim_buf_set_lines(buf, 0, 0, false, { message })
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, { message, '' })
 end
 
 local find_or_create_buffer = function()
@@ -40,7 +41,9 @@ local find_or_create_window = function(buf)
   if win ~= -1 then return win end
 
   win = vim.api.nvim_open_win(buf, true, vim.tbl_extend('keep', config.window, get_win_size_pos()))
-  vim.api.nvim_win_set_cursor(win, { math.max(2, vim.fn.line('.')), 0 })
+
+  local line = vim.api.nvim_buf_line_count(buf) == 1 and 1 or math.max(2, vim.fn.line('.'))
+  vim.api.nvim_win_set_cursor(win, { line, 0 })
 
   return win
 end

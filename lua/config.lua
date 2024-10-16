@@ -2,7 +2,6 @@ local config = {
   buffer = {
     name = 'Lua console',
     prepend_result_with = '\n=> ',
-    save_path = '/tmp'
   },
   window = {
     relative = 'editor',
@@ -18,6 +17,8 @@ local config = {
     eval = '<CR>',  -- <C-J> is to catch <C-Enter>
     clear = 'cc',
     messages = 'm',
+    save = 'S',
+    load = 'L'
   }
 }
 
