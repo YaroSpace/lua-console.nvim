@@ -1,4 +1,4 @@
-local config = require('config')
+local config = require('lua-console.config')
 
 local append_current_buffer = function(text)
   local line = math.max(vim.fn.line('.'), vim.fn.line('v'))

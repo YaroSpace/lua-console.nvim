@@ -1,7 +1,7 @@
 local M = {}
 
-local config = require('config')
-local utils = require('utils')
+local config = require('lua-console.config')
+local utils = require('lua-console.utils')
 
 
 M.set_buf_keymap = function(buf)

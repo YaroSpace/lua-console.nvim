@@ -1,5 +1,5 @@
-local config = require('config')
-local mappings = require('mappings')
+local config = require('lua-console.config')
+local mappings = require('lua-console.mappings')
 
 local set_welcome_message = function(buf)
   local message = [[-- Use '%s' to eval a line or selection, '%s' to clear the console, '%s' to load messages, '%s' to save console, '%s' to load console.]]
