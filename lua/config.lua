@@ -14,7 +14,7 @@ local config = {
     zindex = 1,
   },
   mappings = {
-    open = '`',
+    toggle = '`',
     eval = '<CR>',  -- <C-J> is to catch <C-Enter>
     clear = 'cc',
     messages = 'm',
