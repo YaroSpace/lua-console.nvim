@@ -48,8 +48,7 @@ M.set_buf_keymap = function(buf)
     buffer = buf,
     desc = "Save console",
     callback = function()
-      local path = vim.fn.stdpath('state') .. '/lua-console.lua'
-      vim.cmd('write! ' .. path)
+      vim.cmd('write! ' .. config.buffer.save_path)
     end
   })
 
@@ -57,11 +56,10 @@ M.set_buf_keymap = function(buf)
     buffer = buf,
     desc = "Load console",
     callback = function()
-      local path = vim.fn.stdpath('state') .. '/lua-console.lua'
-      if vim.fn.filereadable(path) == 0 then return end
+      if vim.fn.filereadable(config.buffer.save_path) == 0 then return end
 
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-      vim.cmd(':0read ' .. path)
+      vim.cmd(':0read ' .. config.buffer.save_path)
     end
   })
 end

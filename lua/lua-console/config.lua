@@ -2,6 +2,8 @@ local config = {
   buffer = {
     name = 'Lua console',
     prepend_result_with = '\n=> ',
+    save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
+    lsp = true
   },
   window = {
     relative = 'editor',
@@ -15,8 +17,8 @@ local config = {
   mappings = {
     toggle = '`',
     eval = '<CR>',  -- <C-J> is to catch <C-Enter>
-    clear = 'cc',
-    messages = 'm',
+    clear = 'C',
+    messages = 'M',
     save = 'S',
     load = 'L'
   }

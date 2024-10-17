@@ -9,13 +9,24 @@ local set_welcome_message = function(buf)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, { message, '' })
 end
 
+local start_lsp = function(buf)
+  local lsp_config = require('lspconfig.configs')['lua_ls']
+  if lsp_config then lsp_config.launch(buf) end
+end
+
 local find_or_create_buffer = function()
 	local buf = vim.fn.bufnr(config.buffer.name)
 	if buf ~= -1 then return buf end
 
-  buf = vim.api.nvim_create_buf(false, true)
+  buf = vim.api.nvim_create_buf(false, false)
+
   vim.api.nvim_buf_set_name(buf, config.buffer.name)
+  vim.api.nvim_set_option_value('path', config.buffer.save_path, { buf = buf })
+  vim.api.nvim_set_option_value("buftype", "nowrite", { buf = buf })
   vim.api.nvim_set_option_value("filetype", "lua", { buf = buf })
+
+  start_lsp(buf)
+  vim.diagnostic.enable(false, { bufnr = buf })
 
   set_welcome_message(buf)
   mappings.set_buf_keymap(buf)
@@ -25,15 +36,15 @@ local find_or_create_buffer = function()
 end
 
 local get_win_size_pos = function()
-    local height = vim.api.nvim_list_uis()[1].height
-    local width = vim.api.nvim_list_uis()[1].width
+  local height = vim.api.nvim_list_uis()[1].height
+  local width = vim.api.nvim_list_uis()[1].width
 
-    return {
-      row = height - 1,
-      col = 0,
-      width = width - 2,
-      height = math.floor(height * 0.5),
-    }
+  return {
+    row = height - 1,
+    col = 0,
+    width = width - 2,
+    height = math.floor(height * 0.5),
+  }
 end
 
 local find_or_create_window = function(buf)
