@@ -1,8 +1,9 @@
 local config = {
   buffer = {
+    lsp = true,
     prepend_result_with = '\n=> ',
     save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
-    lsp = true
+    load_on_start = true
   },
   window = {
     relative = 'editor',

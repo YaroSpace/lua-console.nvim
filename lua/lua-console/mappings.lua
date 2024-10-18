@@ -3,7 +3,6 @@ local M = {}
 local config = require('lua-console.config')
 local utils = require('lua-console.utils')
 
-
 M.set_buf_keymap = function()
   local buf = Lua_console.buf or 0
 
@@ -70,12 +69,7 @@ M.set_buf_keymap = function()
   vim.keymap.set({"n"}, config.mappings.load, "", {
     buffer = buf,
     desc = "Load console",
-    callback = function()
-      if vim.fn.filereadable(config.buffer.save_path) == 0 then return end
-
-      vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-      vim.cmd(':0read ' .. config.buffer.save_path)
-    end
+    callback = utils.load_console
   })
 end
 

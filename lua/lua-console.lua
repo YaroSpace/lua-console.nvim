@@ -1,36 +1,46 @@
 local config = require('lua-console.config')
 local mappings = require('lua-console.mappings')
+local utils = require('lua-console.utils')
 
 Lua_console = { buf = false, win = false, height = 0 }
 
-
 local set_welcome_message = function()
+  local cm = config.mappings
   local message = [[-- Use '%s' to eval a line or selection, '%s' to clear the console, '%s' to load messages, '%s' to save console, '%s' to load console.]]
-  message = string.format(message, config.mappings.eval, config.mappings.clear,
-    config.mappings.messages, config.mappings.save, config.mappings.load)
+  message = string.format(message, cm.eval, cm.clear, cm.messages, cm.save, cm.load)
 
   vim.api.nvim_buf_set_lines(Lua_console.buf, 0, -1, false, { message, '' })
 end
 
 local start_lsp = function()
-  require('lspconfig').lua_ls.setup{ root_dir = function() return vim.fn.stdpath('config') end }
+  local lua_ls = require("lspconfig").lua_ls
+	local root_dir = function(filename, bufnr)
+	  return filename == "/Lua console" and vim.fn.stdpath("config") or lua_ls.config_def.default_config.root_dir(filename, bufnr)
+	end
+
+	lua_ls.setup{ root_dir = root_dir }
 end
 
-local create_buffer = function()
-  if Lua_console.buf then return end
+local get_buffer = function()
+  local buf = Lua_console.buf
+  if buf then return end
 
-  Lua_console.buf = vim.api.nvim_create_buf(false, false)
+  buf = vim.api.nvim_create_buf(false, false)
 
-  vim.api.nvim_buf_set_name(Lua_console.buf, 'Lua console')
-  vim.api.nvim_set_option_value("buftype", "nowrite", { buf = Lua_console.buf })
-  vim.api.nvim_set_option_value("filetype", "lua", { buf = Lua_console.buf })
+  vim.api.nvim_buf_set_name(buf, 'Lua console')
+  vim.api.nvim_set_option_value("buftype", "nowrite", { buf = buf })
 
   if config.buffer.lsp then start_lsp() end
-  vim.diagnostic.enable(false, { bufnr = Lua_console.buf })
+  vim.diagnostic.enable(false, { bufnr = buf })
+  vim.api.nvim_set_option_value("filetype", "lua", { buf = buf })
 
-  set_welcome_message()
+  Lua_console.buf = buf
+
   mappings.set_buf_keymap()
   mappings.set_buf_autocommands()
+
+  set_welcome_message()
+  if config.buffer.load_on_start then utils.load_console() end
 end
 
 local get_win_size_pos = function()
@@ -45,25 +55,25 @@ local get_win_size_pos = function()
   }
 end
 
-local create_window = function()
-  if Lua_console.win then return end
+local get_window = function()
+  local win = Lua_console.win
+  if win then return end
 
-  Lua_console.win = vim.api.nvim_open_win(Lua_console.buf, true, vim.tbl_extend('keep', config.window, get_win_size_pos()))
+  win = vim.api.nvim_open_win(Lua_console.buf, true, vim.tbl_extend('keep', config.window, get_win_size_pos()))
 
   local line = vim.api.nvim_buf_line_count(Lua_console.buf) == 1 and 1 or math.max(2, vim.fn.line('.'))
-  vim.api.nvim_win_set_cursor(Lua_console.win, { line, 0 })
+  vim.api.nvim_win_set_cursor(win, { line, 0 })
+
+  Lua_console.win = win
 end
 
 local toggle_console = function()
-  local current_buffer = vim.fn.bufnr()
-
-  create_buffer()
-  create_window()
-
-  if Lua_console.buf == current_buffer then
+  if Lua_console.buf == vim.fn.bufnr() then
     vim.api.nvim_win_close(Lua_console.win, false)
     Lua_console.win = false
   else
+    get_buffer()
+    get_window()
     vim.api.nvim_set_current_win(Lua_console.win)
   end
 end

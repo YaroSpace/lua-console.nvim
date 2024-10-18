@@ -1,5 +1,12 @@
 local config = require('lua-console.config')
 
+local load_console = function()
+  if vim.fn.filereadable(config.buffer.save_path) == 0 then return end
+
+  local file = vim.fn.readfile(config.buffer.save_path)
+  vim.api.nvim_buf_set_lines(Lua_console.buf, 0, -1, false, file)
+end
+
 local append_current_buffer = function(text)
   local line = math.max(vim.fn.line('.'), vim.fn.line('v'))
   vim.api.nvim_buf_set_lines(0, line, line, false, vim.split(config.buffer.prepend_result_with .. text, "\n"))
@@ -16,7 +23,7 @@ local eval_lua = function(chunk)
 
   local env = setmetatable({ print = pretty_print }, { __index = _G })
 
-  local code, error = load(chunk, config.buffer.name, "t", env)
+  local code, error = load(chunk, 'Lua console eval', "t", env)
   if error then return error end
 
   local status, result = xpcall(code, debug.traceback)
@@ -44,7 +51,24 @@ local eval_lua_in_buffer = function()
   append_current_buffer(eval_lua(chunk))
 end
 
+local get_locals = function()
+  local i, locals = 1, {}
+  while true do
+    local name, value = debug.getlocal(2, i)
+
+    if name then locals[name] = value
+    else break end
+
+    i = i +1
+  end
+
+  return locals
+end
+
 return {
+  load_console = load_console,
   append_current_buffer = append_current_buffer,
+  eval_lua = eval_lua,
   eval_lua_in_buffer = eval_lua_in_buffer,
+  get_locals = get_locals
 }
