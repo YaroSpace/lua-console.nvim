@@ -1,6 +1,5 @@
 local config = {
   buffer = {
-    name = 'Lua console',
     prepend_result_with = '\n=> ',
     save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
     lsp = true
