@@ -4,13 +4,13 @@ local config = require('lua-console.config')
 local utils = require('lua-console.utils')
 
 M.set_buf_keymap = function()
-  local buf = Lua_console.buf or 0
+  --- @type number
+  local buf = Lua_console.buf
 
   vim.api.nvim_buf_set_keymap(buf, "n", "<C-Up>", "", {
     desc = "Resize up",
     callback = function()
       vim.cmd.resize('+5')
-      Lua_console.height = vim.api.nvim_win_get_height(Lua_console.win)
     end
   })
 
@@ -18,7 +18,6 @@ M.set_buf_keymap = function()
     desc = "Resize down",
     callback = function()
       vim.cmd.resize('-5')
-      Lua_console.height = vim.api.nvim_win_get_height(Lua_console.win)
     end
   })
 
@@ -74,11 +73,15 @@ M.set_buf_keymap = function()
 end
 
 M.set_buf_autocommands = function()
-  vim.api.nvim_create_autocmd("BufLeave", {
+  vim.api.nvim_create_autocmd("WinLeave", {
     buffer = Lua_console.buf,
     desc = "Close window when focus is lost",
     callback = function()
+      if not Lua_console.win then return end
+
+      Lua_console.height = vim.api.nvim_win_get_height(Lua_console.win)
       vim.api.nvim_win_close(Lua_console.win, false)
+
       Lua_console.win = false
     end
   })

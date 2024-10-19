@@ -1,5 +1,6 @@
 local config = require('lua-console.config')
 
+---Loads saved console
 local load_console = function()
   if vim.fn.filereadable(config.buffer.save_path) == 0 then return end
 
@@ -7,15 +8,20 @@ local load_console = function()
   vim.api.nvim_buf_set_lines(Lua_console.buf, 0, -1, false, file)
 end
 
+---@param text string Text to append to buffer
 local append_current_buffer = function(text)
   local line = math.max(vim.fn.line('.'), vim.fn.line('v'))
-  vim.api.nvim_buf_set_lines(0, line, line, false, vim.split(config.buffer.prepend_result_with .. text, "\n"))
+  vim.api.nvim_buf_set_lines(0, line, line, false, vim.split('\n' .. config.buffer.prepend_result_with .. text, "\n"))
 end
 
-local pretty_print = function(text)
-  append_current_buffer(vim.inspect(text))
+---Appends pretty printed text to current buffer
+---@param object any Lua object
+local pretty_print = function(object)
+  append_current_buffer(vim.inspect(object))
 end
 
+---Evaluates Lua code and returns pretty printed result with errors if any
+---@param chunk string String with Lua code
 local eval_lua = function(chunk)
   if select(2, chunk:gsub("\n", "")) < 1 then
     chunk = "return " .. chunk
@@ -33,6 +39,7 @@ local eval_lua = function(chunk)
   return vim.inspect(result)
 end
 
+---Evaluates lua in the current line or visual selections and appends to current buffer
 local eval_lua_in_buffer = function()
   local buf  = vim.fn.bufnr()
 
@@ -51,6 +58,14 @@ local eval_lua_in_buffer = function()
   append_current_buffer(eval_lua(chunk))
 end
 
+local get_plugin_path = function()
+  local path = debug.getinfo(1, 'S').source
+  local _, pos = path:find('lua%-console.nvim')
+
+  return path:sub(2,pos)
+end
+
+---@return table<string, any> locals Table of local variables and their values
 local get_locals = function()
   local i, locals = 1, {}
   while true do
@@ -70,5 +85,7 @@ return {
   append_current_buffer = append_current_buffer,
   eval_lua = eval_lua,
   eval_lua_in_buffer = eval_lua_in_buffer,
-  get_locals = get_locals
+  get_locals = get_locals,
+  get_plugin_path = get_plugin_path
+
 }

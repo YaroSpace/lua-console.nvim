@@ -2,7 +2,7 @@ local config = require('lua-console.config')
 local mappings = require('lua-console.mappings')
 local utils = require('lua-console.utils')
 
-Lua_console = { buf = false, win = false, height = 0 }
+_G.Lua_console = { buf = false, win = false, height = 0 }
 
 local set_welcome_message = function()
   local cm = config.mappings
@@ -12,27 +12,18 @@ local set_welcome_message = function()
   vim.api.nvim_buf_set_lines(Lua_console.buf, 0, -1, false, { message, '' })
 end
 
-local start_lsp = function()
-  local lua_ls = require("lspconfig").lua_ls
-	local root_dir = function(filename, bufnr)
-	  return filename == "/Lua console" and vim.fn.stdpath("config") or lua_ls.config_def.default_config.root_dir(filename, bufnr)
-	end
-
-	lua_ls.setup{ root_dir = root_dir }
-end
-
 local get_buffer = function()
+  --- @type number
   local buf = Lua_console.buf
   if buf then return end
 
   buf = vim.api.nvim_create_buf(false, false)
 
-  vim.api.nvim_buf_set_name(buf, 'Lua console')
   vim.api.nvim_set_option_value("buftype", "nowrite", { buf = buf })
+  vim.api.nvim_buf_set_name(buf, utils.get_plugin_path()..'/console') -- the name is only needed so the buffer is picked up by Lsp with correct root
 
-  if config.buffer.lsp then start_lsp() end
-  vim.diagnostic.enable(false, { bufnr = buf })
   vim.api.nvim_set_option_value("filetype", "lua", { buf = buf })
+  vim.diagnostic.enable(false, { bufnr = buf })
 
   Lua_console.buf = buf
 
@@ -51,15 +42,14 @@ local get_win_size_pos = function()
     row = height - 1,
     col = 0,
     width = width - 2,
-    height = (Lua_console.height > 0) and Lua_console.height or math.floor(height * 0.5)
+    height = (Lua_console.height > 0) and Lua_console.height or math.floor(height * config.window.height)
   }
 end
 
 local get_window = function()
   local win = Lua_console.win
   if win then return end
-
-  win = vim.api.nvim_open_win(Lua_console.buf, true, vim.tbl_extend('keep', config.window, get_win_size_pos()))
+  win = vim.api.nvim_open_win(Lua_console.buf, true, vim.tbl_extend('force', config.window, get_win_size_pos()))
 
   local line = vim.api.nvim_buf_line_count(Lua_console.buf) == 1 and 1 or math.max(2, vim.fn.line('.'))
   vim.api.nvim_win_set_cursor(win, { line, 0 })
@@ -68,9 +58,8 @@ local get_window = function()
 end
 
 local toggle_console = function()
-  if Lua_console.buf == vim.fn.bufnr() then
+  if Lua_console.win then
     vim.api.nvim_win_close(Lua_console.win, false)
-    Lua_console.win = false
   else
     get_buffer()
     get_window()
