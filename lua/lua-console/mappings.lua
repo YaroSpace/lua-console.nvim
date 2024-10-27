@@ -36,18 +36,19 @@ M.set_buf_keymap = function()
 
   vim.api.nvim_buf_set_keymap(buf, "n", config.mappings.messages, "", {
     desc = 'Load messages',
-    callback = function()
-      local messages = vim.api.nvim_exec2('messages', { output = true }).output
-      utils.append_current_buffer(messages)
-    end
+    callback = utils.load_messages
   })
 
   vim.api.nvim_buf_set_keymap(buf, "n", "gf", "", {
     desc = "Open file in vertical split",
     callback = function()
       local file = vim.fn.expand "<cfile>"
+      local line = utils.get_file_line()
+
       vim.api.nvim_win_close(0, false)
+
       vim.cmd("vs " .. file)
+      if line then vim.api.nvim_win_set_cursor(0, {line, 0}) end
     end,
   })
 
@@ -70,17 +71,28 @@ M.set_buf_keymap = function()
     desc = "Load console",
     callback = utils.load_console
   })
+
+  vim.keymap.set({"n"}, 'q', "", {
+    buffer = buf,
+    desc = "Close console",
+    callback = function()
+      vim.api.nvim_win_close(0, false)
+    end
+  })
 end
 
 M.set_buf_autocommands = function()
-  vim.api.nvim_create_autocmd("WinLeave", {
+  vim.api.nvim_create_autocmd({ "BufLeave", "BufWinLeave" }, {
     buffer = Lua_console.buf,
     desc = "Close window when focus is lost",
     callback = function()
-      if not Lua_console.win then return end
+      local win = Lua_console.win
+      if not win then return end
 
-      Lua_console.height = vim.api.nvim_win_get_height(Lua_console.win)
-      vim.api.nvim_win_close(Lua_console.win, false)
+      if vim.api.nvim_win_is_valid(win) then
+        Lua_console.height = vim.api.nvim_win_get_height(win)
+        vim.api.nvim_win_close(win, false)
+      end
 
       Lua_console.win = false
     end

@@ -15,7 +15,7 @@ end
 local get_buffer = function()
   --- @type number
   local buf = Lua_console.buf
-  if buf then return end
+  if buf and vim.fn.bufloaded(buf) == 1 then return end
 
   local buf_name = utils.get_plugin_path()..'/console'
 
@@ -24,6 +24,9 @@ local get_buffer = function()
 
   buf = vim.api.nvim_create_buf(false, false)
 
+  vim.api.nvim_set_option_value("swapfile", false, { buf = buf })
+  vim.api.nvim_set_option_value('buflisted', false, { buf = buf })
+  vim.api.nvim_set_option_value("bufhidden", 'hide', { buf = buf })
   vim.api.nvim_set_option_value("buftype", "nowrite", { buf = buf })
   vim.api.nvim_buf_set_name(buf, buf_name) -- the name is only needed so the buffer is picked up by Lsp with correct root
 
@@ -52,13 +55,11 @@ local get_win_size_pos = function()
 end
 
 local get_window = function()
-  local win = Lua_console.win
-  if win then return end
+  local win = vim.api.nvim_open_win(Lua_console.buf, true, vim.tbl_extend('force', config.window, get_win_size_pos()))
 
-  win = vim.api.nvim_open_win(Lua_console.buf, true, vim.tbl_extend('force', config.window, get_win_size_pos()))
-
-  vim.wo[win].foldcolumn = '2'
+  vim.wo[win].foldcolumn = 'auto:9'
   vim.wo[win].cursorline = true
+  vim.wo.foldmethod = 'indent'
 
   local line = vim.api.nvim_buf_line_count(Lua_console.buf) == 1 and 1 or math.max(2, vim.fn.line('.'))
   vim.api.nvim_win_set_cursor(win, { line, 0 })
@@ -67,7 +68,7 @@ local get_window = function()
 end
 
 local toggle_console = function()
-  if Lua_console.win then
+  if Lua_console.win and vim.api.nvim_win_is_valid(Lua_console.win) then
     vim.api.nvim_win_close(Lua_console.win, false)
   else
     get_buffer()
