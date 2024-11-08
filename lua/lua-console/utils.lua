@@ -15,7 +15,7 @@ local get_file_line = function()
   return tonumber(lines[1]:match('(%d+),$'))
 end
 
-local line_offset
+local line_offset = 0
 
 ---@param text string Text to append to buffer
 local append_current_buffer = function(text)
@@ -132,6 +132,8 @@ local load_messages = function()
 	end)
 
 	vim.cmd.messages()
+
+  line_offset = 0
 	append_current_buffer(table.concat(messages, '\n'))
 
 	vim.ui_detach(ns)
