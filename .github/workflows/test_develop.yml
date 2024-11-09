@@ -1,0 +1,22 @@
+---
+name: develop
+on:
+  pull_request: ~
+  push:
+    branches:
+      - develop
+jobs:
+  build:
+    name: Run tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        neovim_version: ['stable']
+        # neovim_version: ['nightly', 'stable']
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        uses: ./.github/actions/build
+        with:
+          nvim_version: ${{ matrix.neovim_version }}

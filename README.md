@@ -1,7 +1,7 @@
-# 💻 Lua console
+# 💻 Lua console ![main](https://github.com/yarospace/lua-console.nvim/actions/workflows/test_main.yml/badge.svg?branch=main) ![develop](https://github.com/yarospace/lua-console.nvim/actions/workflows/test_develop.yml/badge.svg?branch=develop) [![LuaRocks](https://img.shields.io/luarocks/v/YaroSpace/lua-console.nvim?logo=lua&color=purple)](https://luarocks.org/modules/YaroSpace/lua-console.nvim)
 
-**lua-console.nvim** is yet another REPL console to execute Lua, configure Neovim, explore its API and settings.  
-Acts as a user friendly replacement of command mode - messages loop and as a handy scratch pad to store and test code gists.
+**lua-console.nvim** - is a handy scratch pad / REPL / debug console for Lua development and Neovim exploration and configuration.  
+Acts as a user friendly replacement of command mode - messages loop and as a handy scratch pad to store and test your code gists.
 
 <img src="doc/demo.gif">
 
@@ -40,30 +40,41 @@ otherwise, install with your favourite package manager and add
 
 ## ⚙️  Configuration
 
-Default settings:
+<details><summary>Default Settings</summary>
+
+<!-- config:start -->
 
 ```lua
 opts = {
   buffer = {
     prepend_result_with = '=> ',
     save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
-    load_on_start = true -- load saved session on Vim start
+    load_on_start = true -- load saved session on first entry
   },
   window = {
-    -- @field height number Percentage of main window
-    height = 0.6,
-    border = { '╔', '═' ,'╗', '║', '╝', '═', '╚', '║' },
+    anchor = 'SW',
+    border = 'double',  -- single|double|rounded
+    height = 0.6, -- percentage of main window
+    zindex = 1,
   },
   mappings = {
     toggle = '`',
+    quit = 'q',
     eval = '<CR>',
     clear = 'C',
     messages = 'M',
     save = 'S',
-    load = 'L'
+    load = 'L',
+    resize_up = '<C-Up>',
+    resize_down = '<C-Down>',
+    help = '?'
   }
 }
 ```
+
+<!-- config:end -->
+
+</details>
 
 ## 🚀 Usage (with default mappings)
 
