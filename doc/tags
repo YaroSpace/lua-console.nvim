@@ -5,5 +5,4 @@ eval_lua_in_buffer()	lua-console.nvim_api.txt	/*eval_lua_in_buffer()*
 load_console()	lua-console.nvim_api.txt	/*load_console()*
 load_messages()	lua-console.nvim_api.txt	/*load_messages()*
 lua-console.nvim-table-of-contents	lua-console.nvim.txt	/*lua-console.nvim-table-of-contents*
-lua-console.nvim-💻-lua-console-main-develop-✨-features	lua-console.nvim.txt	/*lua-console.nvim-💻-lua-console-main-develop-✨-features*
 pretty_print()	lua-console.nvim_api.txt	/*pretty_print()*

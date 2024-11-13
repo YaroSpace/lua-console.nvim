@@ -3,15 +3,15 @@
 ==============================================================================
 Table of Contents                         *lua-console.nvim-table-of-contents*
 
-1. 💻 Lua console main develop|lua-console.nvim-💻-lua-console-main-develop|
-  - 💡 Motivation|lua-console.nvim-💻-lua-console-main-develop-💡-motivation|
-  - ✨ Features |lua-console.nvim-💻-lua-console-main-develop-✨-features|
-  - 📦 Installation|lua-console.nvim-💻-lua-console-main-develop-📦-installation|
-  - ⚙️ Configuration|lua-console.nvim-💻-lua-console-main-develop-⚙️-configuration|
-  - 🚀 Usage (with default mappings)|lua-console.nvim-💻-lua-console-main-develop-🚀-usage-(with-default-mappings)|
+1. 💻 Lua console main develop LuaRocks|lua-console.nvim-💻-lua-console-main-develop-luarocks|
+  - 💡 Motivation|lua-console.nvim-💻-lua-console-main-develop-luarocks-💡-motivation|
+  - ✨ Features|lua-console.nvim-💻-lua-console-main-develop-luarocks-✨-features|
+  - 📦 Installation|lua-console.nvim-💻-lua-console-main-develop-luarocks-📦-installation|
+  - ⚙️ Configuration|lua-console.nvim-💻-lua-console-main-develop-luarocks-⚙️-configuration|
+  - 🚀 Usage (with default mappings)|lua-console.nvim-💻-lua-console-main-develop-luarocks-🚀-usage-(with-default-mappings)|
 
 ==============================================================================
-1. 💻 Lua console main develop*lua-console.nvim-💻-lua-console-main-develop*
+1. 💻 Lua console main develop LuaRocks*lua-console.nvim-💻-lua-console-main-develop-luarocks*
 
 **lua-console.nvim** - is a handy scratch pad / REPL / debug console for Lua
 development and Neovim exploration and configuration. Acts as a user friendly
@@ -21,7 +21,7 @@ and test your code gists.
 
 
 
-💡 MOTIVATION*lua-console.nvim-💻-lua-console-main-develop-💡-motivation*
+💡 MOTIVATION*lua-console.nvim-💻-lua-console-main-develop-luarocks-💡-motivation*
 
 After installing Neovim, it took me some time to configure it, learn its
 settings, structure and API, while learning Lua in the process. I got fed up of
@@ -31,7 +31,7 @@ the whole thing again, copying the paths from error stacktraces and so on. I
 needed something better, so there it is.
 
 
-✨ FEATURES     *lua-console.nvim-💻-lua-console-main-develop-✨-features*
+✨ FEATURES*lua-console.nvim-💻-lua-console-main-develop-luarocks-✨-features*
 
 - Evaluate single line expressions
 - Evaluate visually selected lines of code
@@ -44,7 +44,7 @@ needed something better, so there it is.
 - Use as scratch pad for code gists
 
 
-📦 INSTALLATION*lua-console.nvim-💻-lua-console-main-develop-📦-installation*
+📦 INSTALLATION*lua-console.nvim-💻-lua-console-main-develop-luarocks-📦-installation*
 
 With lazy.nvim <https://github.com/folke/lazy.nvim>:
 
@@ -59,7 +59,7 @@ otherwise, install with your favourite package manager and add
 `require('lua-console').setup({opts})` somewhere in your config.
 
 
-⚙️ CONFIGURATION*lua-console.nvim-💻-lua-console-main-develop-⚙️-configuration*
+⚙️ CONFIGURATION*lua-console.nvim-💻-lua-console-main-develop-luarocks-⚙️-configuration*
 
 Default Settings ~
 
@@ -92,7 +92,7 @@ Default Settings ~
 <
 
 
-🚀 USAGE (WITH DEFAULT MAPPINGS)*lua-console.nvim-💻-lua-console-main-develop-🚀-usage-(with-default-mappings)*
+🚀 USAGE (WITH DEFAULT MAPPINGS)*lua-console.nvim-💻-lua-console-main-develop-luarocks-🚀-usage-(with-default-mappings)*
 
 - Install, hit the mapped key ``` and start exploring.
 - Enter code as normal, in insert mode.
