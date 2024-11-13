@@ -1,0 +1,59 @@
+==============================================================================
+------------------------------------------------------------------------------
+                                                                *load_console()*
+
+`load_console`()
+
+saved console
+
+------------------------------------------------------------------------------
+                                                       *append_current_buffer()*
+
+`append_current_buffer`({lines})
+
+Parameters ~
+    {lines} `(string[])` Text to append to buffer after current selection
+
+------------------------------------------------------------------------------
+                                                                *pretty_print()*
+
+`pretty_print`({...})
+
+
+prints objects
+Parameters ~
+    {...} `(any[])`
+
+------------------------------------------------------------------------------
+                                                            *clean_stacktrace()*
+
+`clean_stacktrace`({error})
+
+Remove the stacktrace preceeding the call from lua-console
+
+------------------------------------------------------------------------------
+                                                                    *eval_lua()*
+
+`eval_lua`({lines})
+
+Evaluates Lua code and returns pretty printed result with errors if any
+@param lines string[] table with lines of Lua code
+@return string[]
+
+------------------------------------------------------------------------------
+                                                          *eval_lua_in_buffer()*
+
+`eval_lua_in_buffer`()
+
+lua in the current line or visual selections and appends to current buffer
+
+------------------------------------------------------------------------------
+                                                               *load_messages()*
+
+`load_messages`()
+
+messages into console
+
+WARNING: This file is auto-generated. Do not edit it!
+
+ vim:tw=78:ts=8:noet:ft=help:norl:

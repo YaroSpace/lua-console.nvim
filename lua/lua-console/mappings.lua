@@ -1,40 +1,35 @@
 local M = {}
 
-local config = require('lua-console.config')
-local utils = require('lua-console.utils')
-
 M.set_buf_keymap = function()
+  local utils = require('lua-console.utils')
+  local config = require('lua-console.config')
+  local mappings = config.mappings
+
   --- @type number
   local buf = Lua_console.buf
 
-  vim.api.nvim_buf_set_keymap(buf, "n", "<C-Up>", "", {
+  vim.api.nvim_buf_set_keymap(buf, "n", mappings.resize_up, "", {
     desc = "Resize up",
     callback = function()
       vim.cmd.resize('+5')
     end
   })
 
-  vim.api.nvim_buf_set_keymap(buf, "n", "<C-Down>", "", {
+  vim.api.nvim_buf_set_keymap(buf, "n", mappings.resize_down, "", {
     desc = "Resize down",
     callback = function()
       vim.cmd.resize('-5')
     end
   })
 
-  vim.api.nvim_buf_set_keymap(buf, "n", "k", "", {
-    desc = "Move up",
+  vim.api.nvim_buf_set_keymap(buf, "n", mappings.clear, "", {
+    desc = 'Clear console',
     callback = function()
-      if vim.api.nvim_win_get_cursor(0)[1] == 2 then return end
-      vim.api.nvim_feedkeys('k', 'n', false)
+      vim.api.nvim_buf_set_lines(0, 1, -1, false, {''})
     end
   })
 
-  vim.api.nvim_buf_set_keymap(buf, "n", config.mappings.clear, "", {
-    desc = 'Clear console',
-    callback = function() vim.api.nvim_buf_set_lines(0, 1, -1, false, {''}) end
-  })
-
-  vim.api.nvim_buf_set_keymap(buf, "n", config.mappings.messages, "", {
+  vim.api.nvim_buf_set_keymap(buf, "n", mappings.messages, "", {
     desc = 'Load messages',
     callback = utils.load_messages
   })
@@ -43,7 +38,7 @@ M.set_buf_keymap = function()
     desc = "Open file in vertical split",
     callback = function()
       local file = vim.fn.expand "<cfile>"
-      local line = utils.get_file_line()
+      local line = utils.get_source_lnum()
 
       vim.api.nvim_win_close(0, false)
 
@@ -52,13 +47,13 @@ M.set_buf_keymap = function()
     end,
   })
 
-  vim.keymap.set({"n", "v"}, config.mappings.eval, "", {
+  vim.keymap.set({"n", "v"}, mappings.eval, "", {
     buffer = buf,
     desc = "Eval lua code in current line or visual selection",
     callback = utils.eval_lua_in_buffer
   })
 
-  vim.keymap.set({"n"}, config.mappings.save, "", {
+  vim.keymap.set({"n"}, mappings.save, "", {
     buffer = buf,
     desc = "Save console",
     callback = function()
@@ -66,17 +61,25 @@ M.set_buf_keymap = function()
     end
   })
 
-  vim.keymap.set({"n"}, config.mappings.load, "", {
+  vim.keymap.set({"n"}, mappings.load, "", {
     buffer = buf,
     desc = "Load console",
     callback = utils.load_console
   })
 
-  vim.keymap.set({"n"}, 'q', "", {
+  vim.keymap.set({"n"}, mappings.quit, "", {
     buffer = buf,
     desc = "Close console",
     callback = function()
       vim.api.nvim_win_close(0, false)
+    end
+  })
+
+  vim.keymap.set({"n"}, 'g?', "", {
+    buffer = buf,
+    desc = "Toggle help",
+    callback = function()
+      utils.toggle_help()
     end
   })
 end

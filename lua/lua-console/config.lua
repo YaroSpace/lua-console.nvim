@@ -1,4 +1,6 @@
-local config = {
+local M = {}
+
+local default_config = {
   buffer = {
     prepend_result_with = '=> ',
     save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
@@ -8,21 +10,31 @@ local config = {
     relative = 'editor',
     anchor = 'SW',
     style = 'minimal',
-    border = { '╔', '═' ,'╗', '║', '╝', '═', '╚', '║' },
+    border = 'double',  -- single|double|rounded
     title = ' Lua console ',
     title_pos = 'left',
-    -- @field height number Percentage of main window
-    height = 0.6,
+    height = 0.6, -- percentage of main window
     zindex = 1,
   },
   mappings = {
     toggle = '`',
-    eval = '<CR>',  -- or <C-J> for <C-Enter>
+    quit = 'q',
+    eval = '<CR>',
     clear = 'C',
     messages = 'M',
     save = 'S',
-    load = 'L'
+    load = 'L',
+    resize_up = '<C-Up>',
+    resize_down = '<C-Down>',
+    help = 'g?'
   }
 }
 
-return config
+M.setup = function(opts)
+  default_config = vim.tbl_deep_extend("force", default_config, opts or {})
+  setmetatable(M, { __index = default_config } )
+
+  return M
+end
+
+return M
