@@ -1,11 +1,13 @@
 local h = require("spec_helper")
 
 describe("lua-console.utils", function()
-	local utils
+	_G.Lua_console = {}
+	local config, utils
 
 	setup(function()
 		utils = require("lua-console.utils")
-		require('lua-console.config').setup()
+		config = require("lua-console.config")
+		config.setup()
 	end)
 
 	describe("eval lua - single line", function()
@@ -39,7 +41,6 @@ describe("lua-console.utils", function()
 			result = eval_lua(code)
 			assert.has_string(result, "'<eof>' expected near '='")
 		end)
-
 	end)
 
 	describe('eval lua - multiple lines', function()
@@ -87,6 +88,85 @@ describe("lua-console.utils", function()
 
 			result = eval_lua(code)
 			assert.has_string(result, "nil")
+		end)
+
+		it('handles code that returns multiple values', function()
+			code = h.to_table([[
+				a = 'test_string'
+				a:find('str')
+			]])
+
+			result = eval_lua(code)
+			assert.has_string(result, "[1] 6, [2] 8")
+		end)
+	end)
+
+	describe('preserving context', function()
+		local eval_lua = utils.eval_lua
+		local code, result, expected
+
+		it('preserves context between executions if config is set', function()
+			code = {'a = 5'}
+			eval_lua(code)
+
+			code = {'a = a + 5'}
+			eval_lua(code)
+
+			code = {'a'}
+
+			result = eval_lua(code)
+			assert.has_string(result, "10")
+		end)
+
+		it('does not preserves context between executions if config is not set', function()
+		  config.setup { buffer = { preserve_context = false } }
+			code = {'a = 5'}
+			eval_lua(code)
+
+			code = {'a = a + 5'}
+			eval_lua(code)
+
+			code = {'a'}
+
+			result = eval_lua(code)
+			assert.has_string(result, "nil")
+		end)
+
+		it('provides access to context', function()
+		  config.setup { buffer = { preserve_context = true } }
+
+			code = {'test_1 = 5; b = 10; local c = 100'}
+			eval_lua(code)
+
+			code = {'test_1 = test_1 + 5; b = b * 10; c = c - 50'}
+			eval_lua(code)
+
+			code = {'_ctx()'}
+
+      expected = h.to_string([[
+				{
+				  b = 100,
+				  test_1 = 10
+				}
+			]])
+
+			result = eval_lua(code)
+			assert.has_string(result, expected)
+		end)
+
+		it('clears context', function()
+		  config.setup { buffer = { preserve_context = true } }
+
+			code = {'test_1 = 5; b = 10; local c = 100'}
+			eval_lua(code)
+
+			code = {'test_1 = test_1 + 5; b = b * 10; c = c - 50'}
+			eval_lua(code)
+
+			code = {'_ctx_clear()'}
+
+			result = eval_lua(code)
+			assert.has_string(result, 'nil')
 		end)
 	end)
 
@@ -176,7 +256,7 @@ describe("lua-console.utils", function()
 			assert.has_string(result, "attempt to call field 'fn' (a table value)")
 		end)
 
-		it("gives a stacktrace on runtime error", function()
+		it("gives a clean stacktrace on runtime error", function()
 			code = h.to_table([[
 				vim.fs.root(nil)
 			]])
@@ -207,6 +287,7 @@ describe("lua-console.utils", function()
 		after_each(function()
 			vim.api.nvim_win_close(win, false)
 			vim.api.nvim_buf_delete(buf, { force = true })
+			buf, win = nil, nil
 		end)
 
 		describe("eval_lua_in_buffer", function()
@@ -271,10 +352,43 @@ describe("lua-console.utils", function()
 				result = h.get_buffer(buf)
 				assert.has_string(result, expected)
 			end)
+
+			it("evaluates lua in current buffer - shows nil as virtual text", function()
+				vim.api.nvim_win_set_cursor(win, { 1, 0 })
+				h.send_keys('V2j')
+
+				content = h.to_table([[
+					for i = 1, 5 do
+						i = i + 5
+					end
+  				]])
+				h.set_buffer(buf, content)
+				utils.eval_lua_in_buffer()
+
+				expected = config.buffer.prepend_result_with .. 'nil'
+
+				result = h.get_virtual_text(buf, 2, 2)
+				assert.has_string(result, expected)
+			end)
+
+			it("gives syntax error message", function()
+				vim.api.nvim_win_set_cursor(win, { 1, 0 })
+
+				content = h.to_table[[ for i, ]]
+				h.set_buffer(buf, content)
+
+				utils.eval_lua_in_buffer()
+				expected = h.to_string([[
+          => [string "Lua console: "]:1: '<name>' expected near '<eof>'
+  				]])
+
+				result = h.get_buffer(buf)
+				assert.has_string(result, expected)
+			end)
 		end)
 
 		describe("lua-console.utils", function()
-			local content, result
+			local content, result, expected
 
 			it("load_console - loads saved content into console", function()
 				local path = require("lua-console.config").buffer.save_path
@@ -294,7 +408,37 @@ describe("lua-console.utils", function()
 				assert.has_string(result, content)
 			end)
 
-			it("get_source_lnum - get the line number for function source", function()
+			it("infers truncated paths in the stacktrace", function()
+			  local rtp = vim.fn.expand('$VIMRUNTIME')
+				local truncated = '...e/nvim-linux64/share/nvim/runtime/lua/vim/diagnostic.lua'
+				expected = rtp .. "/lua/vim/diagnostic.lua"
+
+      	local path, _ = utils.get_path_lnum(truncated)
+				assert.is_same(expected, path)
+
+      	truncated = '...testing/start/lua-console.nvim/lua/lua-console/utils.lua'
+				expected = vim.fn.expand('$XDG_PLUGIN_PATH') .. '/lua/lua-console/utils.lua'
+
+      	path, _ = utils.get_path_lnum(truncated)
+				assert.is_same(expected, path)
+			end)
+
+			it("infers truncated paths and line number in the stacktrace", function()
+      	local truncated = '...testing/start/lua-console.nvim/lua/lua-console/utils.lua'
+				content = h.to_table([[
+      		'...testing/start/lua-console.nvim/lua/lua-console/utils.lua:85'
+				]])
+				h.set_buffer(buf, content)
+				vim.api.nvim_win_set_cursor(win, { 1, 0 })
+
+				expected = vim.fn.expand('$XDG_PLUGIN_PATH') .. '/lua/lua-console/utils.lua'
+
+      	local path, lnum = utils.get_path_lnum(truncated)
+				assert.is_same(expected, path)
+				assert.is_same(85, lnum)
+			end)
+
+			it("get_source_lnum - gets the line number for function source", function()
 				content = h.to_table([[
 				=> {
   				currentline = -1,
@@ -313,8 +457,9 @@ describe("lua-console.utils", function()
 				h.set_buffer(buf, content)
 				vim.api.nvim_win_set_cursor(win, { 11, 0 })
 
-				result = utils.get_source_lnum()
-				assert.equals(125, result)
+      	local truncated = ".../.local/share/nvim/lazy/arrow.nvim/lua/arrow/persist.lua"
+      	local _, lnum = utils.get_path_lnum(truncated)
+				assert.equals(125, lnum)
 			end)
 
 			it("load_messages - into console", function()

@@ -8,34 +8,95 @@ local to_table = function(str)
   return vim.split(str or '', '\n', { trimempty = true })
 end
 
-local toggle_help = function()
-  local ns = vim.api.nvim_create_namespace('Lua-console')
-  local ids = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {})
-
-  if not vim.tbl_isempty(ids) then
-    vim.api.nvim_buf_del_extmark(0, ns, ids[1][1])
-    return
+local pack = function(...)
+  local ret = {}
+  for i = 1, select("#", ...) do
+    local el = select(i, ...)
+    table.insert(ret, el)
   end
-  
-  local cm = config.mappings
-  local message = [['%s' - eval a line or selection, '%s' - clear the console, '%s' - load messages, '%s' - save console, '%s' - load console, '%s'/'%s - resize window, '%s' - toggle help]]
-  message = string.format(message, cm.eval, cm.clear, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
 
-  vim.api.nvim_buf_set_extmark(0, ns, 0, 0, { id=1, virt_text = { { message, 'Comment' } }, virt_text_pos = 'overlay', undo_restore = false, invalidate = true })
+  return ret
+end
+
+local show_virtual_text = function(id, text, line, position, highlight)
+  local ns = vim.api.nvim_create_namespace('Lua-console')
+  vim.api.nvim_buf_set_extmark(Lua_console.buf, ns, line, 0, {
+    id = id,
+    virt_text = { { text, highlight } },
+    virt_text_pos = position,
+    virt_text_hide = true,
+    undo_restore = false,
+    invalidate = true
+  })
+end
+
+local toggle_help = function()
+  local buf = Lua_console.buf or 0
+  local cm = config.mappings
+  local ns = vim.api.nvim_create_namespace('Lua-console')
+  local ids = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, {})
+  local message
+
+  if vim.tbl_isempty(ids) or ids[1][1] == 2 then
+    vim.api.nvim_buf_del_extmark(buf, ns, 2)
+
+    message = cm.help .. ' - help  '
+    show_virtual_text(1, message, 0, 'right_align', 'Comment')
+  elseif ids[1][1] == 1 then
+    vim.api.nvim_buf_del_extmark(buf, ns, 1)
+
+    message = [['%s' - eval a line or selection, '%s' - clear the console, '%s' - load messages, '%s' - save console, '%s' - load console, '%s'/'%s - resize window, '%s' - toggle help]]
+    message = string.format(message, cm.eval, cm.clear, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
+
+    show_virtual_text(2, message, 0, 'overlay', 'Comment')
+  end
 end
 
 ---Loads saved console
-local load_console = function()
+---@param on_start boolean
+local load_console = function(on_start)
+  if on_start == false then return end
+
   if vim.fn.filereadable(config.buffer.save_path) == 0 then return end
+
   local file = vim.fn.readfile(config.buffer.save_path)
   vim.api.nvim_buf_set_lines(Lua_console.buf, 0, -1, false, file)
+
+  if not on_start then toggle_help() end
+end
+
+local infer_truncated_path = function(truncated_path)
+  local path = truncated_path:match('.+/(lua/.+)')
+  local found = vim.api.nvim_get_runtime_file(path, false)
+
+  return #found > 0 and found[1] or truncated_path
 end
 
 --Gets the line number for a function in debug info
 local get_source_lnum = function()
-  local cur_line = vim.api.nvim_win_get_cursor(Lua_console.win)[1]
-  local lines = vim.api.nvim_buf_get_lines(Lua_console.buf, cur_line - 6, cur_line, false)
-  return tonumber(lines[1]:match('(%d+),$'))
+  local cursor = vim.api.nvim_win_get_cursor(Lua_console.win)
+  local cur_line_no = cursor[1]
+  local cur_line = vim.fn.getline(cur_line_no)
+
+  local lnum = cur_line:match(":(%d+)", cursor[2])
+  if lnum then return tonumber(lnum) end
+
+  local lines = vim.api.nvim_buf_get_lines(Lua_console.buf, cur_line_no - 6, cur_line_no, false)
+  if vim.tbl_isempty(lines) then return 1 end
+
+  lnum = lines[1]:match('(%d+),$')
+  return lnum and tonumber(lnum) or 1
+end
+
+local get_path_lnum = function(path)
+  local lnum = get_source_lnum()
+  lnum = math.max(1, lnum)
+
+  if path:find("^%.%.%.") then
+    path = infer_truncated_path(path)
+  end
+
+  return path, lnum
 end
 
 local print_buffer = {}
@@ -55,7 +116,6 @@ end
 local pretty_print = function(...)
   local result, var_no = '', ''
   local nargs = select('#', ...)
-
   for i=1, nargs do
     local o = select(i, ...)
 
@@ -102,6 +162,29 @@ local function add_return(tbl)
   return ret
 end
 
+local get_ctx = function()
+  if config.buffer.preserve_context and Lua_console.ctx then return Lua_console.ctx end
+  local env, mt = {}, {}
+
+  mt = {
+    print = pretty_print,
+    _ctx = function()
+      local ctx = {}
+      ctx = vim.tbl_extend('force', ctx, env)
+      return ctx
+    end,
+    _ctx_clear = function()
+      Lua_console.ctx = nil
+    end,
+    __index = function(_, key)
+      return mt[key] and mt[key] or _G[key]
+    end
+  }
+
+  Lua_console.ctx = env
+  return setmetatable(env, mt)
+end
+
 --- Evaluates Lua code and returns pretty printed result with errors if any
 --- @param lines string[] table with lines of Lua code
 --- @return string[]
@@ -111,8 +194,8 @@ local eval_lua = function(lines)
   lines = remove_empty_lines(lines)
   if vim.tbl_isempty(lines) then return {} end
 
-  local env = setmetatable({ print = pretty_print }, { __index = _G })
   local lines_with_return = add_return(lines)
+  local env = get_ctx()
 
   if not select(2, load(to_string(lines_with_return), '', 't', env)) then
     lines = lines_with_return
@@ -124,10 +207,15 @@ local eval_lua = function(lines)
 	print_buffer = {}
 
   ---@cast code function
-  local status, result = xpcall(code, debug.traceback)
-  if not status then return clean_stacktrace(result) end
+  local result = pack(xpcall(code, debug.traceback))
+  if result[1] then
+    table.remove(result, 1)
+    if #result > 0 then pretty_print(unpack(result))
+    else pretty_print(nil) end
+  else
+    vim.list_extend(print_buffer, clean_stacktrace(result[2]))
+  end
 
-  pretty_print(result)
   return print_buffer
 end
 
@@ -147,7 +235,12 @@ local eval_lua_in_buffer = function()
   local lines = vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
   local result = eval_lua(lines)
 
-  if not vim.tbl_isempty(result) then append_current_buffer(result) end
+  if #result == 0 then return end
+
+  if #result == 1 and result[1]:find('nil') then
+    local text = '  ' .. config.buffer.prepend_result_with .. result[1]
+    show_virtual_text(nil, text, v_end - 1, 'eol', 'Comment')
+  else append_current_buffer(result) end
 end
 
 ---Load messages into console
@@ -180,5 +273,5 @@ return {
   eval_lua_in_buffer = eval_lua_in_buffer,
   get_plugin_path = get_plugin_path,
   load_messages = load_messages,
-  get_source_lnum = get_source_lnum,
+  get_path_lnum = get_path_lnum
 }

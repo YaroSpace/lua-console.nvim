@@ -16,6 +16,7 @@ describe("lua-console.nvim - mappings", function()
 			load = "L",
 			resize_up = "gq",
 			resize_down = "gw",
+			help = 'g?'
 		}
 
 		console = require("lua-console")
@@ -38,6 +39,10 @@ describe("lua-console.nvim - mappings", function()
 
 	after_each(function()
 		require("lua-console").deactivate()
+		for _, no in ipairs(vim.api.nvim_list_bufs()) do
+			vim.api.nvim_buf_delete(no, { force = true })
+		end
+		buf, win = nil, nil
 	end)
 
 	describe("lua-console.nvim - mappings", function()
@@ -110,8 +115,6 @@ describe("lua-console.nvim - mappings", function()
 
 			local file = io.open(config.buffer.save_path)
 			assert.has_string(result, file:read())
-
-			vim.api.nvim_buf_delete(vim.fn.bufnr(config.buffer.save_path), { force = true })
 		end)
 
 		it("loads console", function()
@@ -129,18 +132,32 @@ describe("lua-console.nvim - mappings", function()
 			result = h.get_buffer(buf)
 			assert.has_string(result, h.to_string(content))
 
-			vim.api.nvim_buf_delete(vim.fn.bufnr(config.buffer.save_path), { force = true })
+			result = h.get_virtual_text(buf, 0)
+			assert.has_string(result, config.mappings.help .. ' - help')
 		end)
 
-		it("shows help message", function()
+		it("toggles help message #current", function()
+			vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
+
+			console.toggle_console()
+			buf = vim.fn.bufnr("lua-console")
+
 			h.send_keys(mappings.help)
 
-			local ns = vim.api.nvim_create_namespace("Lua-console")
-			local ids = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {})
-			local mark = vim.api.nvim_buf_get_extmark_by_id(0, ns, ids[1][1], { details=true })
-
-			result = mark[3].virt_text[1]
+			result = h.get_virtual_text(buf)
 			assert.has_string(result, "'" .. config.mappings.eval .. "' - eval a line or selection")
+		end)
+
+		it("toggles help message", function()
+			vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
+			console.toggle_console()
+			buf = vim.fn.bufnr("lua-console")
+
+			h.send_keys(mappings.help)
+			h.send_keys(mappings.help)
+
+			result = h.get_virtual_text(buf, 0)
+			assert.has_string(result, config.mappings.help .. " - help")
 		end)
 
 		it("opens a split with file from function definition", function()
@@ -151,13 +168,34 @@ describe("lua-console.nvim - mappings", function()
 			h.set_buffer(buf, content)
 
 			h.send_keys(config.mappings.eval)
-			result = h.get_buffer(buf)
-
 			vim.api.nvim_win_set_cursor(win, { 13, 20 })
 			h.send_keys("gf")
 
 			local new_buf = vim.fn.bufnr()
 			assert.has_string(vim.fn.bufname(new_buf), "nvim/runtime/lua/vim/lsp.lua")
+
+			local line = vim.fn.line('.')
+			assert.is_same(line, 281)
+		end)
+
+		it("opens a split with file from stacktrace", function()
+			content = h.to_table([[
+  			vim.lsp.diagnostic.get_namespace(nil)
+			]])
+			h.set_buffer(buf, content)
+
+			h.send_keys(config.mappings.eval)
+			result = h.get_buffer(buf)
+
+			vim.api.nvim_win_set_cursor(win, { 7, 0 })
+			h.send_keys("gf")
+
+			local new_buf = vim.fn.bufnr()
+			local path = vim.fn.expand('$VIMRUNTIME') .. "/lua/vim/lsp/diagnostic.lua"
+			assert.has_string(vim.fn.bufname(new_buf), path)
+
+			local line = vim.fn.line('.')
+			assert.is_same(line, 189)
 		end)
 
 		it("sets autocommand to close window on lost focus", function()

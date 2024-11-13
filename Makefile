@@ -14,7 +14,10 @@ stylua:
 
 test:
 	eval $(luarocks path --lua-version 5.1 --bin)
-	busted --run unit
+	busted -o spec/utfTerminal.lua --run unit
 
 watch:
-	while sleep 0.1; do ls -d spec/**/*.lua | entr -d -c make test; done
+	while sleep 0.1; do ls -d spec/**/*.lua | entr -d -c busted -o spec/utfTerminal.lua --run unit; done
+
+watch_current:
+	while sleep 0.1; do ls -d spec/**/*.lua | entr -d -c busted -o spec/utfTerminal.lua --run unit -t=current; done

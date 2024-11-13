@@ -2,9 +2,12 @@
 ------------------------------------------------------------------------------
                                                                 *load_console()*
 
-`load_console`()
+`load_console`({on_start})
+
 
 saved console
+Parameters ~
+    {on_start} `(boolean)`
 
 ------------------------------------------------------------------------------
                                                        *append_current_buffer()*

@@ -35,15 +35,14 @@ M.set_buf_keymap = function()
   })
 
   vim.api.nvim_buf_set_keymap(buf, "n", "gf", "", {
-    desc = "Open file in vertical split",
+    desc = "Opens file in vertical split",
     callback = function()
-      local file = vim.fn.expand "<cfile>"
-      local line = utils.get_source_lnum()
+      local path, lnum = utils.get_path_lnum(vim.fn.expand "<cfile>")
+      if vim.fn.filereadable(path) == 0 then return end
 
       vim.api.nvim_win_close(0, false)
-
-      vim.cmd("vs " .. file)
-      if line then vim.api.nvim_win_set_cursor(0, {line, 0}) end
+      vim.cmd("vs " .. path)
+      vim.api.nvim_win_set_cursor(0, { lnum, 0 })
     end,
   })
 
@@ -75,7 +74,7 @@ M.set_buf_keymap = function()
     end
   })
 
-  vim.keymap.set({"n"}, 'g?', "", {
+  vim.keymap.set({"n"}, mappings.help, "", {
     buffer = buf,
     desc = "Toggle help",
     callback = function()
