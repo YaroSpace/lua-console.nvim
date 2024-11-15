@@ -48,7 +48,8 @@ local toggle_help = function()
     message = [['%s' - eval a line or selection, '%s' - clear the console, '%s' - load messages, '%s' - save console, '%s' - load console, '%s'/'%s - resize window, '%s' - toggle help]]
     message = string.format(message, cm.eval, cm.clear, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
 
-    show_virtual_text(2, message, 0, 'overlay', 'Comment')
+    local visible_line = vim.fn.line('w0')
+    show_virtual_text(2, message, visible_line - 1, 'overlay', 'Comment')
   end
 end
 
