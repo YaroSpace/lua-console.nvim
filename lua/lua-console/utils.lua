@@ -18,9 +18,13 @@ local pack = function(...)
   return ret
 end
 
-local show_virtual_text = function(id, text, line, position, highlight)
+local show_virtual_text = function(buf, id, text, line, position, highlight)
   local ns = vim.api.nvim_create_namespace('Lua-console')
-  vim.api.nvim_buf_set_extmark(Lua_console.buf, ns, line, 0, {
+  local ext_mark = vim.api.nvim_buf_get_extmark_by_id(0, ns, id, {})
+
+  if #ext_mark > 0 then vim.api.nvim_buf_del_extmark(0, ns, id) end
+
+  vim.api.nvim_buf_set_extmark(buf, ns, line, 0, {
     id = id,
     virt_text = { { text, highlight } },
     virt_text_pos = position,
@@ -37,18 +41,19 @@ local toggle_help = function()
   local ids = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, {})
   local message
 
-  if vim.tbl_isempty(ids) or ids[1][1] == 2 then
+  if #ids == 0 or ids[1][1] == 2 then
     vim.api.nvim_buf_del_extmark(buf, ns, 2)
 
     message = cm.help .. ' - help  '
-    show_virtual_text(1, message, 0, 'right_align', 'Comment')
+    show_virtual_text(buf, 1, message, 0, 'right_align', 'Comment')
   elseif ids[1][1] == 1 then
     vim.api.nvim_buf_del_extmark(buf, ns, 1)
 
     message = [['%s' - eval a line or selection, '%s' - clear the console, '%s' - load messages, '%s' - save console, '%s' - load console, '%s'/'%s - resize window, '%s' - toggle help]]
     message = string.format(message, cm.eval, cm.clear, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
 
-    show_virtual_text(2, message, 0, 'overlay', 'Comment')
+    local visible_line = vim.fn.line('w0')
+    show_virtual_text(buf, 2, message, visible_line - 1, 'overlay', 'Comment')
   end
 end
 
@@ -66,7 +71,7 @@ local load_console = function(on_start)
 end
 
 local infer_truncated_path = function(truncated_path)
-  local path = truncated_path:match('.+/(lua/.+)')
+  local path = truncated_path:match('^.*/(lua/.+)$')
   local found = vim.api.nvim_get_runtime_file(path, false)
 
   return #found > 0 and found[1] or truncated_path
@@ -233,13 +238,22 @@ local eval_lua_in_buffer = function()
   end
 
   local lines = vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
-  local result = eval_lua(lines)
+  if #lines == 0 or (#lines == 1 and vim.trim(lines[1]) == '') then return end
+
+  local result
+  local filetype = vim.bo.filetype
+
+  if filetype == 'ruby' then
+    result = eval_ruby(lines)
+  else
+    result = eval_lua(lines)
+  end
 
   if #result == 0 then return end
 
   if #result == 1 and result[1]:find('nil') then
     local text = '  ' .. config.buffer.prepend_result_with .. result[1]
-    show_virtual_text(nil, text, v_end - 1, 'eol', 'Comment')
+    show_virtual_text(buf, 3, text, v_end - 1, 'eol', 'Comment')
   else append_current_buffer(result) end
 end
 

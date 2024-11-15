@@ -1,9 +1,11 @@
+local colors = require 'term.colors'
 local assert = require('luassert')
 
 local M = {}
 
 _G.LOG = function(...) --luacheck: ignore
-  local result = '\nLOG => '
+  local caller = debug.getinfo(2, 'nl')
+  local result = string.format('\nLOG (%s:%s) => ', caller.name or '', caller.currentline or '')
 
   for i = 1, select('#', ...) do
     local o = select(i, ...)
@@ -15,7 +17,7 @@ _G.LOG = function(...) --luacheck: ignore
     result = result .. string.format('[%s] %s', i, vim.inspect(o)) .. '\n'
   end
 
-  print(result)
+  io.write(colors.cyan(result))
   return result
 end
 
