@@ -26,4 +26,6 @@ read_globals = {
   "assert"
 }
 
-exclude_files = {  }
+exclude_files = {
+  "spec/utfTerminal.lua"
+}

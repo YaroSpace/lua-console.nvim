@@ -26,7 +26,8 @@ local get_or_create_buffer = function()
   mappings.set_buf_keymap()
   mappings.set_buf_autocommands()
 
-  if config.buffer.load_on_start then utils.load_console() end
+  utils.load_console(config.buffer.load_on_start)
+  utils.toggle_help()
 end
 
 local get_win_size_pos = function()
@@ -66,7 +67,7 @@ local toggle_console = function()
 end
 
 local setup = function(opts)
-  _G.Lua_console = { buf = false, win = false, height = 0 }
+  _G.Lua_console = { buf = false, win = false, height = 0, ctx = nil }
 
   config = require("lua-console.config").setup(opts)
   mappings = require("lua-console.mappings")

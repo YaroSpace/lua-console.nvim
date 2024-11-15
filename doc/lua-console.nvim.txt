@@ -9,6 +9,9 @@ Table of Contents                         *lua-console.nvim-table-of-contents*
   - 📦 Installation|lua-console.nvim-💻-lua-console-main-develop-luarocks-📦-installation|
   - ⚙️ Configuration|lua-console.nvim-💻-lua-console-main-develop-luarocks-⚙️-configuration|
   - 🚀 Usage (with default mappings)|lua-console.nvim-💻-lua-console-main-develop-luarocks-🚀-usage-(with-default-mappings)|
+  - 📓 Notes on globals, locals and preserving execution context|lua-console.nvim-💻-lua-console-main-develop-luarocks-📓-notes-on-globals,-locals-and-preserving-execution-context|
+  - Alternatives and comparison|lua-console.nvim-💻-lua-console-main-develop-luarocks-alternatives-and-comparison|
+  - 🔥 All feedback and feature requests are very welcome! Enjoy!|lua-console.nvim-💻-lua-console-main-develop-luarocks-🔥-all-feedback-and-feature-requests-are-very-welcome!-enjoy!|
 
 ==============================================================================
 1. 💻 Lua console main develop LuaRocks*lua-console.nvim-💻-lua-console-main-develop-luarocks*
@@ -36,7 +39,7 @@ needed something better, so there it is.
 - Evaluate single line expressions
 - Evaluate visually selected lines of code
 - Pretty print Lua objects, including function details and their source paths
-- Show normal and error output in the console, including output of print(), errors and stacktraces.
+- Show normal and error output in the console, including output of `print()`, errors and stacktraces.
 - Syntax highlighting and autocompletion
 - Load Neovim’s messages into console for inspection and copy/paste
 - Open links from stacktraces and function sources
@@ -55,11 +58,17 @@ With lazy.nvim <https://github.com/folke/lazy.nvim>:
     }
 <
 
-otherwise, install with your favourite package manager and add
+otherwise, install with your favorite package manager and add
 `require('lua-console').setup({opts})` somewhere in your config.
 
 
 ⚙️ CONFIGURATION*lua-console.nvim-💻-lua-console-main-develop-luarocks-⚙️-configuration*
+
+
+  [!NOTE] All settings are very straight forward, but please read below about
+  |lua-console.nvim-`preserve_context`| option.
+Mappings are local to the console, except the one for toggling, which is - ```
+by default.
 
 Default Settings ~
 
@@ -68,13 +77,12 @@ Default Settings ~
       buffer = {
         prepend_result_with = '=> ',
         save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
-        load_on_start = true -- load saved session on first entry
+        load_on_start = true, -- load saved session on first entry
+        preserve_context = true -- preserve context between executions
       },
       window = {
-        anchor = 'SW',
         border = 'double',  -- single|double|rounded
         height = 0.6, -- percentage of main window
-        zindex = 1,
       },
       mappings = {
         toggle = '`',
@@ -94,16 +102,66 @@ Default Settings ~
 
 🚀 USAGE (WITH DEFAULT MAPPINGS)*lua-console.nvim-💻-lua-console-main-develop-luarocks-🚀-usage-(with-default-mappings)*
 
-- Install, hit the mapped key ``` and start exploring.
+- Install, press the mapped key ``` and start exploring.
 - Enter code as normal, in insert mode.
 - Hit `Enter` in normal mode to evaluate a variable, statement or an expression in the current line.
 - Visually select a range of lines and press `Enter` to evaluate the code in the range.
 - The evaluation of the last line is returned and printed, so no `return` is needed in most cases.
-- Use `print()` in your code to output the result into the console. Objects and functions are pretty printed.
+    To avoid noise, if the only return of your execution is `nil`, e.g. from an assignment, like `a = 1`, it will not be printed, but shown as virtual text.
+- Use `print()` in your code to output the results into the console. Accepts variable number of arguments, e.g. `print(var_1, var_2, ...)`.
+- Objects and functions are pretty printed, with function source paths.
+- Press `gf` to follow the paths in stack traces and to function sources. Truncated paths work too.
+
+
+  [!NOTE] This is especially useful when you want to see where a function was
+  redefined at runtime. So, if you evaluate
+  `vim.lsp.handlers['textDocument/hover']` for example, you can jump to its
+  current definition, while Lsp/tags would take you to the original one.
 - Press `M` to load Neovim messages into the console.
-- Press `gf` to follow the paths in stack traces and to function sources.
 - Use `S` and `L` to save / load the console session to preserve history of your hacking.
 - You can resize the console with `<C-Up>` and `<C-Down>`.
+
+
+📓 NOTES ON GLOBALS, LOCALS AND PRESERVING EXECUTION CONTEXT*lua-console.nvim-💻-lua-console-main-develop-luarocks-📓-notes-on-globals,-locals-and-preserving-execution-context*
+
+
+  [!IMPORTANT] By default, the option `preserve_context` is on, which means that
+  the context is preserved between executions.
+All the code executed in the console is evaluated in isolated environment. This
+means that any variables you declare will not be persisted in Neovim’s global
+environment, although all global variables are accessible. If you want
+purposefully to alter the global state, use `_G.My_variable = ..`.
+
+The option `preserve_context` means that if you assign variables without
+`local`, they will be stored in console’s local context and preserved between
+separate executions. So, if you first execute `a = 1`, then `a = a + 1` and
+then `a` - you will get `2`. Variables with `local` are not preserved.
+
+If you want a classic REPL experience, when the context is cleared on every
+execution, set `preserve_context = false`.
+
+There are two functions available within the console:
+
+- `_ctx()` - will print the contents of the context
+- `_ctx_clear()` - clears the context
+
+
+ALTERNATIVES AND COMPARISON*lua-console.nvim-💻-lua-console-main-develop-luarocks-alternatives-and-comparison*
+
+There are a number of alternatives available, notably:
+
+- Luapad <https://github.com/rafcamlet/nvim-luapad>
+- Luadev <https://github.com/bfredl/nvim-luadev>
+- SnipRun <https://github.com/michaelb/sniprun>
+
+Initially, when starting with Lua and Neovim, I tried all the REPLs/code
+runners I could find. However, I was not satisfied with all of them in one way
+or another. Lua-console is an attempt to combine the best features of all of
+them, like REPL / scratch pad / code runner / debug console, while leaving the
+UX and config simple.
+
+
+🔥 ALL FEEDBACK AND FEATURE REQUESTS ARE VERY WELCOME! ENJOY!*lua-console.nvim-💻-lua-console-main-develop-luarocks-🔥-all-feedback-and-feature-requests-are-very-welcome!-enjoy!*
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 

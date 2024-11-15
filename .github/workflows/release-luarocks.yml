@@ -18,3 +18,17 @@ jobs:
         uses: nvim-neorocks/luarocks-tag-release@v7
         env:
           LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+        with:
+          name: lua-console.nvim
+          labels:  |
+            neovim
+            neovim-plugin
+          summary: lua-console.nvim - a handy scratch pad / REPL / debug console for Lua development and Neovim exploration and configuration.
+          detailed_description:  |
+            Acts as a user friendly replacement of command mode - messages loop and
+            as a handy scratch pad to store and test your code gists.
+          copy_directories:  |
+            doc
+            spec
+          test_dependencies: |
+            busted
