@@ -136,7 +136,7 @@ describe("lua-console.nvim - mappings", function()
 			assert.has_string(result, config.mappings.help .. ' - help')
 		end)
 
-		it("toggles help message #current", function()
+		it("toggles help message", function()
 			vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
 
 			console.toggle_console()

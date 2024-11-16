@@ -280,6 +280,7 @@ describe("lua-console.utils", function()
 
 		before_each(function()
 			buf = vim.api.nvim_create_buf(true, true)
+			vim.bo[buf].filetype = 'lua'
 			win = vim.api.nvim_open_win(buf, true, { split = "left" })
 			_G.Lua_console = { buf = buf, win = win }
 		end)
@@ -307,7 +308,7 @@ describe("lua-console.utils", function()
 
 			it("evaluates lua in current buffer - single line", function()
 				vim.api.nvim_win_set_cursor(win, { 1, 0 })
-				utils.eval_lua_in_buffer()
+				utils.eval_code_in_buffer()
 
 				expected = h.to_string([[
 					{a=1, b=2}
@@ -326,7 +327,7 @@ describe("lua-console.utils", function()
 				vim.api.nvim_win_set_cursor(win, { 2, 0 })
 				vim.cmd.exe("'normal V3j'")
 
-				utils.eval_lua_in_buffer()
+				utils.eval_code_in_buffer()
 
 				expected = h.to_string([[
 					{a=1, b=2}
@@ -353,7 +354,7 @@ describe("lua-console.utils", function()
 				assert.has_string(result, expected)
 			end)
 
-			it("evaluates lua in current buffer - shows nil as virtual text", function()
+			it("evaluates lua in current buffer - shows nil as virtual text #wip", function()
 				vim.api.nvim_win_set_cursor(win, { 1, 0 })
 				h.send_keys('V2j')
 
@@ -363,7 +364,7 @@ describe("lua-console.utils", function()
 					end
   				]])
 				h.set_buffer(buf, content)
-				utils.eval_lua_in_buffer()
+				utils.eval_code_in_buffer()
 
 				expected = config.buffer.prepend_result_with .. 'nil'
 
@@ -377,7 +378,7 @@ describe("lua-console.utils", function()
 				content = h.to_table[[ for i, ]]
 				h.set_buffer(buf, content)
 
-				utils.eval_lua_in_buffer()
+				utils.eval_code_in_buffer()
 				expected = h.to_string([[
           => [string "Lua console: "]:1: '<name>' expected near '<eof>'
   				]])
