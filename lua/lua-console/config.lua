@@ -28,6 +28,14 @@ local default_config = {
     resize_up = '<C-Up>',
     resize_down = '<C-Down>',
     help = '?'
+  },
+  external_evaluators = {
+    ruby = {
+      cmd = { 'ruby', '-e' },
+      env = {},
+      prepend_code = '$stdout.sync = true;',
+      formatter = nil
+    }
   }
 }
 

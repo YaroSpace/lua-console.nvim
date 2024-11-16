@@ -49,7 +49,7 @@ M.set_buf_keymap = function()
   vim.keymap.set({"n", "v"}, mappings.eval, "", {
     buffer = buf,
     desc = "Eval lua code in current line or visual selection",
-    callback = utils.eval_lua_in_buffer
+    callback = utils.eval_code_in_buffer
   })
 
   vim.keymap.set({"n"}, mappings.save, "", {

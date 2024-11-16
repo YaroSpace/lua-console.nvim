@@ -139,6 +139,15 @@ local function remove_empty_lines(tbl)
   return vim.tbl_filter(function(el) return vim.fn.trim(el) ~= '' end, tbl)
 end
 
+local function trim_empty_lines(tbl)
+  if #tbl == 0 then return tbl end
+
+  if vim.trim(tbl[#tbl] or '') == '' then table.remove(tbl, #tbl) end
+  if vim.trim(tbl[1] or '') == '' then table.remove(tbl, 1) end
+
+  return tbl
+end
+
 --- Remove the stacktrace preceeding the call from lua-console
 local function clean_stacktrace(error)
   local lines = to_table(error)
@@ -168,6 +177,7 @@ local function add_return(tbl)
 end
 
 local get_ctx = function()
+  -- TODO: move context to buffer variable
   if config.buffer.preserve_context and Lua_console.ctx then return Lua_console.ctx end
   local env, mt = {}, {}
 
@@ -196,9 +206,6 @@ end
 local eval_lua = function(lines)
   vim.validate({ lines = { lines, 'table'} })
 
-  lines = remove_empty_lines(lines)
-  if vim.tbl_isempty(lines) then return {} end
-
   local lines_with_return = add_return(lines)
   local env = get_ctx()
 
@@ -224,8 +231,61 @@ local eval_lua = function(lines)
   return print_buffer
 end
 
+local get_external_evaluator = function(lang)
+  local eval_config = config.external_evaluators[lang]
+  if not (eval_config and eval_config.cmd) then
+    vim.notify(string.format("No external evaluator for language '%s' found", lang), vim.log.levels.WARN)
+    return
+  end
+
+  local job_opts = {
+    env = eval_config or {},
+	  on_stdout = function(_, ret, _)
+      ret = trim_empty_lines(ret or {})
+	    if #ret > 0 then append_current_buffer(ret) end
+	  end,
+	  on_stderr = function(_, ret, _)
+      ret = trim_empty_lines(ret or {})
+	    if #ret > 0 then append_current_buffer(ret) end
+	  end,
+    on_exit = function() end,
+	  stderr_buffered = true,
+	  stdout_buffered = true,
+  }
+
+  return function(lines)
+    local code = eval_config.prepend_code .. ' ' .. to_string(lines)
+    local cmd = eval_config.cmd
+    vim.list_extend(cmd, { code })
+
+    vim.fn.jobstart(cmd, job_opts)
+    return {}
+  end
+end
+
+local get_evaluator = function(buf, lines)
+  local evaluator
+  local lang = lines[1]:match("```(.+)")
+
+  if lang then table.remove(lines, 1) end
+  lang = lang and lang or vim.bo[buf].filetype
+
+  if lang == '' then
+    vim.notify('Plese specify the language to evaluate', 2)
+    return
+  end
+
+  if lang == 'lua' then
+    evaluator = eval_lua
+  else
+    evaluator = get_external_evaluator(lang)
+  end
+
+  return evaluator
+end
+
 ---Evaluates lua in the current line or visual selections and appends to current buffer
-local eval_lua_in_buffer = function()
+local eval_code_in_buffer = function()
   local buf  = vim.fn.bufnr()
 
   if vim.api.nvim_get_mode().mode == "V" then
@@ -238,17 +298,13 @@ local eval_lua_in_buffer = function()
   end
 
   local lines = vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
-  if #lines == 0 or (#lines == 1 and vim.trim(lines[1]) == '') then return end
+  lines = remove_empty_lines(lines)
+  if #lines == 0 then return end
 
-  local result
-  local filetype = vim.bo.filetype
+  local evaluator = get_evaluator(buf, lines)
+  if not evaluator then return end
 
-  if filetype == 'ruby' then
-    result = eval_ruby(lines)
-  else
-    result = eval_lua(lines)
-  end
-
+  local result = evaluator(lines)
   if #result == 0 then return end
 
   if #result == 1 and result[1]:find('nil') then
@@ -284,7 +340,7 @@ return {
   load_console = load_console,
   append_current_buffer = append_current_buffer,
   eval_lua = eval_lua,
-  eval_lua_in_buffer = eval_lua_in_buffer,
+  eval_code_in_buffer = eval_code_in_buffer,
   get_plugin_path = get_plugin_path,
   load_messages = load_messages,
   get_path_lnum = get_path_lnum
