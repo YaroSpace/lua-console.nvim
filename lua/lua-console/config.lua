@@ -32,9 +32,18 @@ local default_config = {
   external_evaluators = {
     ruby = {
       cmd = { 'ruby', '-e' },
-      env = {},
+      env = { RUBY_VERSION = '3.3.0' },
       prepend_code = '$stdout.sync = true;',
-      formatter = nil
+      formatter = function(result)
+        local utils = require('lua-console.utils')
+
+        local sep_start = '================================>'
+        local sep_end = '<================================'
+        table.insert(result, 1, sep_start)
+        table.insert(result, sep_end)
+
+        return result
+      end
     }
   }
 }

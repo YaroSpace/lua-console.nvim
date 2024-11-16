@@ -239,15 +239,23 @@ local get_external_evaluator = function(lang)
   end
 
   local job_opts = {
-    env = eval_config or {},
+    env = eval_config.env or { EMPTY = '' },
 	  on_stdout = function(_, ret, _)
       ret = trim_empty_lines(ret or {})
-	    if #ret > 0 then append_current_buffer(ret) end
+	    if #ret == 0 then return end
+
+	    local formatter = eval_config.formatter
+	    if formatter and type(formatter) == 'function' then
+	      ret = formatter(ret)
+	    end
+	    append_current_buffer(ret)
 	  end,
+
 	  on_stderr = function(_, ret, _)
       ret = trim_empty_lines(ret or {})
 	    if #ret > 0 then append_current_buffer(ret) end
 	  end,
+
     on_exit = function() end,
 	  stderr_buffered = true,
 	  stdout_buffered = true,
@@ -256,9 +264,10 @@ local get_external_evaluator = function(lang)
   return function(lines)
     local code = eval_config.prepend_code .. ' ' .. to_string(lines)
     local cmd = eval_config.cmd
-    vim.list_extend(cmd, { code })
 
+    vim.list_extend(cmd, { code })
     vim.fn.jobstart(cmd, job_opts)
+
     return {}
   end
 end
@@ -271,7 +280,7 @@ local get_evaluator = function(buf, lines)
   lang = lang and lang or vim.bo[buf].filetype
 
   if lang == '' then
-    vim.notify('Plese specify the language to evaluate', 2)
+    vim.notify('Plese specify the language to evaluate', vim.log.levels.WARN)
     return
   end
 
@@ -284,7 +293,7 @@ local get_evaluator = function(buf, lines)
   return evaluator
 end
 
----Evaluates lua in the current line or visual selections and appends to current buffer
+---Evaluates code in the current line or visual selection and appends to current buffer
 local eval_code_in_buffer = function()
   local buf  = vim.fn.bufnr()
 
