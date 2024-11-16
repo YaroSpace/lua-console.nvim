@@ -1,6 +1,8 @@
 set_lua_paths = eval $$(luarocks path --lua-version 5.1 --bin)
 test_unit = busted -o spec/utfTerminal.lua --run unit
-test_tag ?= wip
+tag ?= wip
+
+watch = '*.lua'
 
 .PHONY: api_documentation luacheck stylua test
 
@@ -22,7 +24,7 @@ test:
 	@$(set_lua_paths); $(test_unit)
 
 watch:
-	@$(set_lua_paths); while sleep 0.1; do ls -d spec/**/*.lua | entr -d -c $(test_unit); done
+	@$(set_lua_paths); while sleep 0.1; do find . -name $(watch) | entr -d -c $(test_unit); done
 
 watch_tag:
-	@$(set_lua_paths); while sleep 0.1; do ls -d spec/**/*.lua | entr -d -c $(test_unit) -t=$(test_tag); done
+	@$(set_lua_paths); while sleep 0.1; do find . -name $(watch) | entr -d -c $(test_unit) -t=$(tag); done
