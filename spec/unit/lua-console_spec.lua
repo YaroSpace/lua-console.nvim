@@ -89,7 +89,7 @@ describe('lua-console.nvim', function()
         assert.has_properties(result, expected)
 
         result = vim.fn.bufname(buf)
-        local path = vim.fn.expand('$XDG_PLUGIN_PATH') .. '/console'
+        local path = h.get_root() .. '/console'
         assert.are_same(result, path)
       end)
 

@@ -20,7 +20,13 @@ describe("lua-console.nvim - mappings", function()
 		}
 
 		console = require("lua-console")
-		config = require("lua-console").setup({ mappings = mappings })
+		config = require("lua-console").setup {
+			mappings = mappings,
+			buffer = {
+				load_on_start = false,
+				save_path = vim.fn.stdpath('state') .. '/lua-console-test.lua'
+			}
+		}
 		mappings = config.mappings
 		console.toggle_console()
 
@@ -92,16 +98,6 @@ describe("lua-console.nvim - mappings", function()
 			assert.is_not.has_string(result, "print(i, 'A-' .. i*10)")
 		end)
 
-		pending("loads messages", function() -- test fails with segmentation fault: weird
-			content = h.to_string("Message 1 Message 2 Message 3")
-			vim.cmd("echomsg '" .. content .. "'")
-
-			h.send_keys(mappings.messages)
-			result = h.get_buffer(buf)
-
-			assert.has_string(result, content)
-		end)
-
 		it("saves console", function()
 			content = h.to_table([[
 				Some text 1
@@ -114,14 +110,14 @@ describe("lua-console.nvim - mappings", function()
 			result = h.get_buffer(buf)
 
 			local file = io.open(config.buffer.save_path)
-			assert.has_string(result, file:read())
+			assert.has_string(result, file:read('*all'))
 		end)
 
 		it("loads console", function()
 			content = h.to_table([[
-				Some new text 1
-				Some new text 2
-				Some new text 3
+				Some new text 10
+				Some new text 11
+				Some new text 12
 			]])
 			h.set_buffer(buf, content)
 
@@ -136,7 +132,7 @@ describe("lua-console.nvim - mappings", function()
 			assert.has_string(result, config.mappings.help .. ' - help')
 		end)
 
-		it("toggles help message", function()
+		it("toggles help message - on", function()
 			vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
 
 			console.toggle_console()
@@ -148,7 +144,7 @@ describe("lua-console.nvim - mappings", function()
 			assert.has_string(result, "'" .. config.mappings.eval .. "' - eval a line or selection")
 		end)
 
-		it("toggles help message", function()
+		it("toggles help message - off", function()
 			vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
 			console.toggle_console()
 			buf = vim.fn.bufnr("lua-console")

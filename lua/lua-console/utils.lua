@@ -9,13 +9,7 @@ local to_table = function(str)
 end
 
 local pack = function(...)
-  local ret = {}
-  for i = 1, select("#", ...) do
-    local el = select(i, ...)
-    table.insert(ret, el)
-  end
-
-  return ret
+  return { ... }
 end
 
 local show_virtual_text = function(buf, id, text, line, position, highlight)
@@ -34,8 +28,7 @@ local show_virtual_text = function(buf, id, text, line, position, highlight)
   })
 end
 
-local toggle_help = function()
-  local buf = Lua_console.buf or 0
+local toggle_help = function(buf)
   local cm = config.mappings
   local ns = vim.api.nvim_create_namespace('Lua-console')
   local ids = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, {})
@@ -58,16 +51,12 @@ local toggle_help = function()
 end
 
 ---Loads saved console
----@param on_start boolean
-local load_console = function(on_start)
-  if on_start == false then return end
-
+---@param buf number
+local load_saved_console = function(buf)
   if vim.fn.filereadable(config.buffer.save_path) == 0 then return end
 
   local file = vim.fn.readfile(config.buffer.save_path)
-  vim.api.nvim_buf_set_lines(Lua_console.buf, 0, -1, false, file)
-
-  if not on_start then toggle_help() end
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, file)
 end
 
 local infer_truncated_path = function(truncated_path)
@@ -79,17 +68,16 @@ end
 
 --Gets the line number for a function in debug info
 local get_source_lnum = function()
-  local cursor = vim.api.nvim_win_get_cursor(Lua_console.win)
-  local cur_line_no = cursor[1]
-  local cur_line = vim.fn.getline(cur_line_no)
+  local lnum, cnum = vim.fn.line('.'), vim.fn.col('.')
+  local line = vim.fn.getline(lnum)
 
-  local lnum = cur_line:match(":(%d+)", cursor[2])
-  if lnum then return tonumber(lnum) end
+  local dnum = line:match(":(%d+)", cnum)
+  if dnum then return tonumber(dnum) end
 
-  local lines = vim.api.nvim_buf_get_lines(Lua_console.buf, cur_line_no - 6, cur_line_no, false)
-  if vim.tbl_isempty(lines) then return 1 end
+  line = vim.fn.getline(lnum - 5)
+  if #line == 0 then return 1 end
 
-  lnum = lines[1]:match('(%d+),$')
+  lnum = line:match('(%d+),$')
   return lnum and tonumber(lnum) or 1
 end
 
@@ -108,12 +96,18 @@ local print_buffer = {}
 
 ---@param lines string[] Text to append to buffer after current selection
 local append_current_buffer = function(lines)
-  local line = math.max(vim.fn.line('.'), vim.fn.line('v'))
+  local buf = vim.fn.bufnr()
+  local lnum = math.max(vim.fn.line('.'), vim.fn.line('v'))
 
   lines[1] = config.buffer.prepend_result_with .. lines[1]
-  table.insert(lines, 1, '') -- insert an empty line
 
-  vim.api.nvim_buf_set_lines(Lua_console.buf, line, line, false, lines)
+  if #lines == 1 and lines[1]:find('nil') then
+    show_virtual_text(buf, 3, lines[1], lnum - 1, 'eol', 'Comment')
+    return
+  end
+
+  table.insert(lines, 1, '') -- insert an empty line
+  vim.api.nvim_buf_set_lines(buf, lnum, lnum, false, lines)
 end
 
 ---Pretty prints objects
@@ -121,7 +115,8 @@ end
 local pretty_print = function(...)
   local result, var_no = '', ''
   local nargs = select('#', ...)
-  for i=1, nargs do
+
+  for i = 1, nargs do
     local o = select(i, ...)
 
     if i > 1 then result = result .. ', ' end
@@ -176,38 +171,44 @@ local function add_return(tbl)
   return ret
 end
 
-local get_ctx = function()
-  -- TODO: move context to buffer variable
-  if config.buffer.preserve_context and Lua_console.ctx then return Lua_console.ctx end
+local get_ctx = function(buf)
+  buf = buf or vim.fn.bufnr()
+  local status, ctx = pcall(vim.api.nvim_buf_get_var, buf, 'ctx')
+
+  if config.buffer.preserve_context and status and ctx then
+    local ctx_mt = vim.api.nvim_buf_get_var(buf, 'ctx_mt')
+    return setmetatable(ctx, ctx_mt)
+  end
+
   local env, mt = {}, {}
 
   mt = {
     print = pretty_print,
     _ctx = function()
-      local ctx = {}
-      ctx = vim.tbl_extend('force', ctx, env)
-      return ctx
+      return vim.api.nvim_buf_get_var(buf, 'ctx')
     end,
     _ctx_clear = function()
-      Lua_console.ctx = nil
+      vim.api.nvim_buf_set_var(buf, 'ctx', nil)
     end,
     __index = function(_, key)
       return mt[key] and mt[key] or _G[key]
     end
   }
 
-  Lua_console.ctx = env
+  vim.api.nvim_buf_set_var(buf, 'ctx', {})
+  vim.api.nvim_buf_set_var(buf, 'ctx_mt', mt)
   return setmetatable(env, mt)
 end
 
 --- Evaluates Lua code and returns pretty printed result with errors if any
 --- @param lines string[] table with lines of Lua code
+--- @param ctx table environment to execute code in
 --- @return string[]
-local eval_lua = function(lines)
+local eval_lua = function(lines, ctx)
   vim.validate({ lines = { lines, 'table'} })
 
   local lines_with_return = add_return(lines)
-  local env = get_ctx()
+  local env = ctx or get_ctx()
 
   if not select(2, load(to_string(lines_with_return), '', 't', env)) then
     lines = lines_with_return
@@ -220,6 +221,8 @@ local eval_lua = function(lines)
 
   ---@cast code function
   local result = pack(xpcall(code, debug.traceback))
+  vim.api.nvim_buf_set_var(vim.fn.bufnr(), 'ctx', env)
+
   if result[1] then
     table.remove(result, 1)
     if #result > 0 then pretty_print(unpack(result))
@@ -239,15 +242,23 @@ local get_external_evaluator = function(lang)
   end
 
   local job_opts = {
-    env = eval_config or {},
+    env = eval_config.env or { EMPTY = '' },
 	  on_stdout = function(_, ret, _)
       ret = trim_empty_lines(ret or {})
-	    if #ret > 0 then append_current_buffer(ret) end
+	    if #ret == 0 then return end
+
+	    local formatter = eval_config.formatter
+	    if formatter and type(formatter) == 'function' then
+	      ret = formatter(ret)
+	    end
+	    append_current_buffer(ret)
 	  end,
+
 	  on_stderr = function(_, ret, _)
       ret = trim_empty_lines(ret or {})
 	    if #ret > 0 then append_current_buffer(ret) end
 	  end,
+
     on_exit = function() end,
 	  stderr_buffered = true,
 	  stdout_buffered = true,
@@ -256,9 +267,10 @@ local get_external_evaluator = function(lang)
   return function(lines)
     local code = eval_config.prepend_code .. ' ' .. to_string(lines)
     local cmd = eval_config.cmd
-    vim.list_extend(cmd, { code })
 
+    vim.list_extend(cmd, { code })
     vim.fn.jobstart(cmd, job_opts)
+
     return {}
   end
 end
@@ -271,7 +283,7 @@ local get_evaluator = function(buf, lines)
   lang = lang and lang or vim.bo[buf].filetype
 
   if lang == '' then
-    vim.notify('Plese specify the language to evaluate', 2)
+    vim.notify('Plese specify the language to evaluate', vim.log.levels.WARN)
     return
   end
 
@@ -284,7 +296,7 @@ local get_evaluator = function(buf, lines)
   return evaluator
 end
 
----Evaluates lua in the current line or visual selections and appends to current buffer
+---Evaluates code in the current line or visual selection and appends to current buffer
 local eval_code_in_buffer = function()
   local buf  = vim.fn.bufnr()
 
@@ -307,10 +319,7 @@ local eval_code_in_buffer = function()
   local result = evaluator(lines)
   if #result == 0 then return end
 
-  if #result == 1 and result[1]:find('nil') then
-    local text = '  ' .. config.buffer.prepend_result_with .. result[1]
-    show_virtual_text(buf, 3, text, v_end - 1, 'eol', 'Comment')
-  else append_current_buffer(result) end
+  append_current_buffer(result)
 end
 
 ---Load messages into console
@@ -321,7 +330,7 @@ local load_messages = function()
 	vim.ui_attach(ns, { ext_messages = true }, function(event, entries) ---@diagnostic disable-line
 		if event ~= "msg_history_show" then return end
     local messages = vim.tbl_map(function(e) return e[2][1][2] end, entries)
-	  if not vim.tbl_isempty(messages) then append_current_buffer(messages) end
+	  if #messages > 0 then append_current_buffer(messages) end
 	end)
 
 	vim.cmd.messages()
@@ -329,15 +338,13 @@ local load_messages = function()
 end
 
 local get_plugin_path = function()
-  local path = debug.getinfo(1, 'S').source
-  local _, pos = path:find('lua%-console.nvim')
-
-  return path:sub(2,pos)
+  local path = debug.getinfo(1, 'S').source:sub(2)
+  return vim.fs.root(path, '.git')
 end
 
 return {
   toggle_help = toggle_help,
-  load_console = load_console,
+  load_saved_console = load_saved_console,
   append_current_buffer = append_current_buffer,
   eval_lua = eval_lua,
   eval_code_in_buffer = eval_code_in_buffer,

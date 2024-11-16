@@ -1,5 +1,9 @@
 set_lua_paths = eval $$(luarocks path --lua-version 5.1 --bin)
-test_unit = busted -o spec/utfTerminal.lua --run=unit
+busted = $$(find /usr/local/lib/luarocks/*/busted/* -name busted)
+
+test_unit = busted --run=unit
+test_nvim = nvim --headless -i NONE -n -u spec/minimal_init.lua  -l $(busted) --run=unit
+
 tag ?= wip
 watch = '*.lua'
 
@@ -8,7 +12,7 @@ watch = '*.lua'
 all: test luacheck
 
 api_documentation:
-	nvim -u scripts/make_api_documentation/minimal_init.lua -l scripts/make_api_documentation/main.lua
+	nvim -u scripts/make_api_documentation/init.lua -l scripts/make_api_documentation/main.lua
 
 llscheck:
 	llscheck --configpath .luarc.json .
@@ -27,3 +31,6 @@ watch:
 
 watch_tag:
 	@$(set_lua_paths); while sleep 0.1; do find . -name $(watch) | entr -d -c $(test_unit) --tags=$(tag); done
+
+test_nvim:
+	@$(test_nvim) spec/unit

@@ -4,8 +4,8 @@ local assert = require('luassert')
 local M = {}
 
 _G.LOG = function(...) --luacheck: ignore
-  local caller = debug.getinfo(2, 'nl')
-  local result = string.format('\nLOG (%s:%s) => ', caller.name or '', caller.currentline or '')
+  local caller = debug.getinfo(2)
+  local result = string.format('\nLOG (%s:%s) => ', caller.name or vim.fs.basename(caller.short_src) or '', caller.currentline or '')
 
   for i = 1, select('#', ...) do
     local o = select(i, ...)
@@ -14,16 +14,16 @@ _G.LOG = function(...) --luacheck: ignore
       result = result .. ', '
     end
     o = type(o) == 'function' and debug.getinfo(o, 'S') or o
-    result = result .. string.format('[%s] %s', i, vim.inspect(o)) .. '\n'
+    result = result .. string.format('[%s] %s', i, vim.inspect(o))
   end
 
   io.write(colors.cyan(result))
   return result
 end
 
-_G.LOGm = function(...) --luacheck: ignore
-  local mes = _G.LOG(...)
-  vim.cmd.echom("'" .. mes .. "'")
+M.get_root = function()
+  local path = debug.getinfo(1, "S").source:sub(2)
+  return vim.fs.root(path, '.git')
 end
 
 ---@param tbl string[]|string
