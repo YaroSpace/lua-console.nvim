@@ -3,14 +3,13 @@ return {
     coverage = false,
     lpath = "lua/?.lua;lua/?/init.lua;spec/?.lua",
     lua = 'spec/nvim-shim.sh',
-    -- lua = 'nlua',
-    ROOT = {'spec'}
+    ROOT = {'spec'},
+    output = 'spec/utfTerminal.lua',
+    verbose = true
   },
   default = {
-    verbose = true
   },
   unit = {
     ROOT = {'spec/unit'},
-    verbose = true,
   },
 }

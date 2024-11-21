@@ -22,17 +22,17 @@ describe("lua-console.utils", function()
 		end)
 
 		it("evaluates statements without return", function()
-			code = { "vim.fn.stdpath('config')" }
+			code = { "string.format('[%s]', 'test')" }
 
 			result = eval_lua(code)
-			assert.has_string(result, "spec/xdg/config")
+			assert.has_string(result, "[test]")
 		end)
 
 		it("evaluates statements with return", function()
-			code = { "return vim.fn.stdpath('config')" }
+			code = { "return string.format('[%s]', 'test')" }
 
 			result = eval_lua(code)
-			assert.has_string(result, "spec/xdg/config")
+			assert.has_string(result, "[test]")
 		end)
 
 		it("fails on expressions with return", function()
@@ -418,7 +418,7 @@ describe("lua-console.utils", function()
 				assert.is_same(expected, path)
 
       	truncated = '...testing/start/lua-console.nvim/lua/lua-console/utils.lua'
-				expected = vim.fn.expand('$XDG_PLUGIN_PATH') .. '/lua/lua-console/utils.lua'
+				expected = h.get_root() .. '/lua/lua-console/utils.lua'
 
       	path, _ = utils.get_path_lnum(truncated)
 				assert.is_same(expected, path)
@@ -432,7 +432,7 @@ describe("lua-console.utils", function()
 				h.set_buffer(buf, content)
 				vim.api.nvim_win_set_cursor(win, { 1, 0 })
 
-				expected = vim.fn.expand('$XDG_PLUGIN_PATH') .. '/lua/lua-console/utils.lua'
+				expected = h.get_root() .. '/lua/lua-console/utils.lua'
 
       	local path, lnum = utils.get_path_lnum(truncated)
 				assert.is_same(expected, path)

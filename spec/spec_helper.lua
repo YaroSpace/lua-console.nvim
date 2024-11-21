@@ -26,6 +26,10 @@ _G.LOGm = function(...) --luacheck: ignore
   vim.cmd.echom("'" .. mes .. "'")
 end
 
+M.get_root = function()
+  return vim.fs.root(debug.getinfo(1, "S").source, '.git')
+end
+
 ---@param tbl string[]|string
 M.to_string = function(tbl)
   tbl = tbl or {}

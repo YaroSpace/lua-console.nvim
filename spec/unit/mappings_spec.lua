@@ -92,16 +92,6 @@ describe("lua-console.nvim - mappings", function()
 			assert.is_not.has_string(result, "print(i, 'A-' .. i*10)")
 		end)
 
-		pending("loads messages", function() -- test fails with segmentation fault: weird
-			content = h.to_string("Message 1 Message 2 Message 3")
-			vim.cmd("echomsg '" .. content .. "'")
-
-			h.send_keys(mappings.messages)
-			result = h.get_buffer(buf)
-
-			assert.has_string(result, content)
-		end)
-
 		it("saves console", function()
 			content = h.to_table([[
 				Some text 1
@@ -136,7 +126,7 @@ describe("lua-console.nvim - mappings", function()
 			assert.has_string(result, config.mappings.help .. ' - help')
 		end)
 
-		it("toggles help message", function()
+		it("toggles help message - on", function()
 			vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
 
 			console.toggle_console()
@@ -148,7 +138,7 @@ describe("lua-console.nvim - mappings", function()
 			assert.has_string(result, "'" .. config.mappings.eval .. "' - eval a line or selection")
 		end)
 
-		it("toggles help message", function()
+		it("toggles help message - off", function()
 			vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
 			console.toggle_console()
 			buf = vim.fn.bufnr("lua-console")
