@@ -20,7 +20,13 @@ describe("lua-console.nvim - mappings", function()
 		}
 
 		console = require("lua-console")
-		config = require("lua-console").setup({ mappings = mappings })
+		config = require("lua-console").setup {
+			mappings = mappings,
+			buffer = {
+				load_on_start = false,
+				save_path = vim.fn.stdpath('state') .. '/lua-console-test.lua'
+			}
+		}
 		mappings = config.mappings
 		console.toggle_console()
 
@@ -104,14 +110,14 @@ describe("lua-console.nvim - mappings", function()
 			result = h.get_buffer(buf)
 
 			local file = io.open(config.buffer.save_path)
-			assert.has_string(result, file:read())
+			assert.has_string(result, file:read('*all'))
 		end)
 
 		it("loads console", function()
 			content = h.to_table([[
-				Some new text 1
-				Some new text 2
-				Some new text 3
+				Some new text 10
+				Some new text 11
+				Some new text 12
 			]])
 			h.set_buffer(buf, content)
 

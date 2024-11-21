@@ -35,8 +35,6 @@ local default_config = {
       env = { RUBY_VERSION = '3.3.0' },
       prepend_code = '$stdout.sync = true;',
       formatter = function(result)
-        local utils = require('lua-console.utils')
-
         local sep_start = '================================>'
         local sep_end = '<================================'
         table.insert(result, 1, sep_start)

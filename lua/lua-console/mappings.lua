@@ -1,12 +1,9 @@
 local M = {}
 
-M.set_buf_keymap = function()
+M.set_buf_keymap = function(buf)
   local utils = require('lua-console.utils')
   local config = require('lua-console.config')
   local mappings = config.mappings
-
-  --- @type number
-  local buf = Lua_console.buf
 
   vim.api.nvim_buf_set_keymap(buf, "n", mappings.resize_up, "", {
     desc = "Resize up",
@@ -25,7 +22,7 @@ M.set_buf_keymap = function()
   vim.api.nvim_buf_set_keymap(buf, "n", mappings.clear, "", {
     desc = 'Clear console',
     callback = function()
-      vim.api.nvim_buf_set_lines(0, 1, -1, false, {''})
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {''})
     end
   })
 
@@ -63,7 +60,10 @@ M.set_buf_keymap = function()
   vim.keymap.set({"n"}, mappings.load, "", {
     buffer = buf,
     desc = "Load console",
-    callback = utils.load_console
+    callback = function()
+      utils.load_saved_console(buf)
+      utils.toggle_help(buf)
+    end
   })
 
   vim.keymap.set({"n"}, mappings.quit, "", {
@@ -78,14 +78,14 @@ M.set_buf_keymap = function()
     buffer = buf,
     desc = "Toggle help",
     callback = function()
-      utils.toggle_help()
+      utils.toggle_help(buf)
     end
   })
 end
 
-M.set_buf_autocommands = function()
+M.set_buf_autocommands = function(buf)
   vim.api.nvim_create_autocmd({ "BufLeave", "BufWinLeave" }, {
-    buffer = Lua_console.buf,
+    buffer = buf,
     desc = "Close window when focus is lost",
     callback = function()
       local win = Lua_console.win

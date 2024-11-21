@@ -2,12 +2,23 @@ local h = require("spec_helper")
 
 describe("lua-console.utils", function()
 	_G.Lua_console = {}
-	local config, utils
+	local buf, config, utils
 
 	setup(function()
 		utils = require("lua-console.utils")
 		config = require("lua-console.config")
 		config.setup()
+	end)
+
+	before_each(function()
+		buf = vim.api.nvim_create_buf(true, true)
+		vim.api.nvim_set_current_buf(buf)
+		vim.bo[buf].filetype = 'lua'
+	end)
+
+	after_each(function()
+		vim.api.nvim_buf_delete(buf, { force = true })
+		buf = nil
 	end)
 
 	describe("eval lua - single line", function()
@@ -132,7 +143,7 @@ describe("lua-console.utils", function()
 			assert.has_string(result, "nil")
 		end)
 
-		it('provides access to context', function()
+		it('provides access to context #wip', function()
 		  config.setup { buffer = { preserve_context = true } }
 
 			code = {'test_1 = 5; b = 10; local c = 100'}
@@ -276,19 +287,16 @@ describe("lua-console.utils", function()
 	end)
 
 	describe("lua-console utils", function()
-		local buf, win
+		local win
 
 		before_each(function()
-			buf = vim.api.nvim_create_buf(true, true)
-			vim.bo[buf].filetype = 'lua'
 			win = vim.api.nvim_open_win(buf, true, { split = "left" })
 			_G.Lua_console = { buf = buf, win = win }
 		end)
 
 		after_each(function()
 			vim.api.nvim_win_close(win, false)
-			vim.api.nvim_buf_delete(buf, { force = true })
-			buf, win = nil, nil
+			win = nil
 		end)
 
 		describe("eval_lua_in_buffer", function()
@@ -354,7 +362,7 @@ describe("lua-console.utils", function()
 				assert.has_string(result, expected)
 			end)
 
-			it("evaluates lua in current buffer - shows nil as virtual text #wip", function()
+			it("evaluates lua in current buffer - shows nil as virtual text", function()
 				vim.api.nvim_win_set_cursor(win, { 1, 0 })
 				h.send_keys('V2j')
 
@@ -392,8 +400,10 @@ describe("lua-console.utils", function()
 			local content, result, expected
 
 			it("load_console - loads saved content into console", function()
-				local path = require("lua-console.config").buffer.save_path
+				local path = vim.fn.stdpath('state') .. '/lua-console-test.lua'
 				local file = assert(io.open(path, "w"))
+
+				require('lua-console.config').setup { buffer = { save_path = path } }
 
 				content = [[
 				for i=1, 10 do
@@ -403,7 +413,7 @@ describe("lua-console.utils", function()
 				file:write(content)
 				file:close()
 
-				utils.load_console()
+				utils.load_saved_console(buf)
 				result = h.get_buffer(buf)
 
 				assert.has_string(result, content)
