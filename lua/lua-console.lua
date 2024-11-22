@@ -22,8 +22,9 @@ local get_or_create_buffer = function()
   vim.api.nvim_set_option_value('filetype', 'lua', { buf = buf })
   vim.diagnostic.enable(false, { bufnr = buf })
 
-  mappings.set_buf_keymap(buf)
-  mappings.set_buf_autocommands(buf)
+  mappings.set_console_mappings(buf)
+  mappings.set_evaluator_mappings(buf)
+  mappings.set_console_autocommands(buf)
 
   if config.buffer.load_on_start then utils.load_saved_console(buf) end
   utils.toggle_help(buf)
@@ -68,7 +69,7 @@ local toggle_console = function()
 end
 
 local setup = function(opts)
-  _G.Lua_console = { buf = false, win = false, height = 0 }
+  _G.Lua_console = { buf = false, win = false, height = 0, ctx = {} }
 
   config = require("lua-console.config").setup(opts)
   mappings = require("lua-console.mappings")

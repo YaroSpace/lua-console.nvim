@@ -173,30 +173,27 @@ end
 
 local get_ctx = function(buf)
   buf = buf or vim.fn.bufnr()
-  local status, ctx = pcall(vim.api.nvim_buf_get_var, buf, 'ctx')
+  Lua_console.ctx = Lua_console.ctx or {}
 
-  if config.buffer.preserve_context and status and ctx then
-    local ctx_mt = vim.api.nvim_buf_get_var(buf, 'ctx_mt')
-    return setmetatable(ctx, ctx_mt)
-  end
+  local ctx = Lua_console.ctx[buf]
+  if config.buffer.preserve_context and ctx then return ctx end
 
   local env, mt = {}, {}
 
   mt = {
     print = pretty_print,
     _ctx = function()
-      return vim.api.nvim_buf_get_var(buf, 'ctx')
+      return vim.tbl_extend('force', {}, env)
     end,
     _ctx_clear = function()
-      vim.api.nvim_buf_set_var(buf, 'ctx', nil)
+      Lua_console.ctx[buf] = nil
     end,
     __index = function(_, key)
       return mt[key] and mt[key] or _G[key]
     end
   }
 
-  vim.api.nvim_buf_set_var(buf, 'ctx', {})
-  vim.api.nvim_buf_set_var(buf, 'ctx_mt', mt)
+  Lua_console.ctx[buf] = env
   return setmetatable(env, mt)
 end
 
@@ -331,15 +328,24 @@ local load_messages = function()
 		if event ~= "msg_history_show" then return end
     local messages = vim.tbl_map(function(e) return e[2][1][2] end, entries)
 	  if #messages > 0 then append_current_buffer(messages) end
+	  vim.api.nvim_input('<Down>')
 	end)
 
-	vim.cmd.messages()
+	vim.api.nvim_exec2('messages', {})
 	vim.ui_detach(ns)
 end
 
 local get_plugin_path = function()
   local path = debug.getinfo(1, 'S').source:sub(2)
   return vim.fs.root(path, '.git')
+end
+
+---Attaches evaluator (mappings and context) to a buffer
+---@param buf? number buffer number, default is current buffer
+local attach_evaluator = function(buf)
+  buf = buf or vim.fn.bufnr()
+  require('lua-console.mappings').set_evaluator_mappings(buf)
+  vim.notify(string.format('Evaluator attached to buffer [%s]', buf), vim.log.levels.INFO)
 end
 
 return {
@@ -350,5 +356,6 @@ return {
   eval_code_in_buffer = eval_code_in_buffer,
   get_plugin_path = get_plugin_path,
   load_messages = load_messages,
-  get_path_lnum = get_path_lnum
+  get_path_lnum = get_path_lnum,
+  attach_evaluator = attach_evaluator
 }

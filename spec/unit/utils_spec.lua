@@ -21,6 +21,14 @@ describe("lua-console.utils", function()
 		buf = nil
 	end)
 
+	pending('attaches to a buffer', function()
+		-- buf = vim.api.nvim_create_buf(true, true)
+	end)
+
+	pending('preserves context for different buffers', function()
+		-- code
+	end)
+
 	describe("eval lua - single line", function()
 		local eval_lua = utils.eval_lua
 		local code, result
@@ -143,7 +151,7 @@ describe("lua-console.utils", function()
 			assert.has_string(result, "nil")
 		end)
 
-		it('provides access to context #wip', function()
+		it('provides access to context', function()
 		  config.setup { buffer = { preserve_context = true } }
 
 			code = {'test_1 = 5; b = 10; local c = 100'}
@@ -473,7 +481,7 @@ describe("lua-console.utils", function()
 				assert.equals(125, lnum)
 			end)
 
-			it("load_messages - into console", function()
+			pending("load_messages - into console", function()
 				content = h.to_string("Message 1 Message 2 Message 3")
 				vim.cmd("echomsg '" .. content .. "'")
 
