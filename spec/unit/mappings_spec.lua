@@ -1,3 +1,4 @@
+local assert = require("luassert.assert")
 local h = require("spec_helper")
 
 describe("lua-console.nvim - mappings", function()
@@ -109,8 +110,8 @@ describe("lua-console.nvim - mappings", function()
 			h.send_keys(mappings.save)
 			result = h.get_buffer(buf)
 
-			local file = io.open(config.buffer.save_path)
-			assert.has_string(result, file:read('*all'))
+			local file = io.open(config.buffer.save_path):read('*all')
+			assert.has_string(result, file)
 		end)
 
 		it("loads console", function()

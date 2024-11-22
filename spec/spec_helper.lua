@@ -1,23 +1,25 @@
+local assert = require("luassert.assert")
 local colors = require 'term.colors'
-local assert = require('luassert')
 
 local M = {}
 
 _G.LOG = function(...) --luacheck: ignore
   local caller = debug.getinfo(2)
   local result = string.format('\nLOG (%s:%s) => ', caller.name or vim.fs.basename(caller.short_src) or '', caller.currentline or '')
+  local nargs = select('#', ...)
+  local var_no = ''
 
-  for i = 1, select('#', ...) do
+  for i = 1, nargs do
     local o = select(i, ...)
 
-    if i > 1 then
-      result = result .. ', '
-    end
-    o = type(o) == 'function' and debug.getinfo(o, 'S') or o
-    result = result .. string.format('[%s] %s', i, vim.inspect(o))
+    if i > 1 then result = result .. ',\n' end
+    if nargs > 1 then var_no = string.format('[%s] ', i) end
+
+    o = type(o) == 'function' and debug.getinfo(o) or o
+    result = result .. var_no .. vim.inspect(o)
   end
 
-  io.write(colors.cyan(result))
+  io.write(colors.cyan(result), '\n')
   return result
 end
 
