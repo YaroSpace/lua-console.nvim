@@ -21,13 +21,6 @@ M.set_console_mappings = function(buf)
     end
   })
 
-  vim.api.nvim_buf_set_keymap(buf, "n", mappings.clear, "", {
-    desc = 'Clear console',
-    callback = function()
-      vim.api.nvim_buf_set_lines(0, 0, -1, false, {''})
-    end
-  })
-
   vim.api.nvim_buf_set_keymap(buf, "n", mappings.messages, "", {
     desc = 'Load messages',
     callback = utils.load_messages

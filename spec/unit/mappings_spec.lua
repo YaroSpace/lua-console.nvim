@@ -91,13 +91,6 @@ describe("lua-console.nvim - mappings", function()
 			assert.has_string(result, expected)
 		end)
 
-		it("clears console", function()
-			h.send_keys(mappings.clear)
-			result = h.get_buffer(buf)
-
-			assert.is_not.has_string(result, "print(i, 'A-' .. i*10)")
-		end)
-
 		it("saves console", function()
 			content = h.to_table([[
 				Some text 1
