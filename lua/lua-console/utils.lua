@@ -320,7 +320,7 @@ end
 
 local get_evaluator = function(buf, lines)
   local evaluator
-  local lang = lines[1]:match("```(.+)")
+  local lang = lines[1]:match("^" .. config.external_evaluators.lang_prefix .. "(.+)")
 
   if lang then table.remove(lines, 1) end
   lang = lang and lang or vim.bo[buf].filetype
@@ -388,7 +388,7 @@ end
 
 ---Attaches evaluator (mappings and context) to a buffer
 ---@param buf? number buffer number, default is current buffer
-local attach_evaluator = function(buf)
+local attach = function(buf)
   buf = buf or vim.fn.bufnr()
   require('lua-console.mappings').set_evaluator_mappings(buf)
   vim.notify(string.format('Evaluator attached to buffer [%s]', buf), vim.log.levels.INFO)
@@ -403,5 +403,5 @@ return {
   get_plugin_path = get_plugin_path,
   load_messages = load_messages,
   get_path_lnum = get_path_lnum,
-  attach_evaluator = attach_evaluator
+  attach = attach
 }

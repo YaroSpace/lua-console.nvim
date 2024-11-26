@@ -35,7 +35,7 @@ return {
 }
 ```
 otherwise, install with your favorite package manager and add
-`require('lua-console').setup({opts})` somewhere in your config.
+`require('lua-console').setup({ your_custom_options })` somewhere in your config.
 
 
 ## ⚙️  Configuration
@@ -65,7 +65,6 @@ opts = {
     toggle = '`',
     quit = 'q',
     eval = '<CR>',
-    clear = 'C',
     messages = 'M',
     save = 'S',
     load = 'L',
@@ -80,16 +79,17 @@ opts = {
 </details>
 
 
-## 🚀 Usage (with default mappings)
+## 🚀 Basic usage (with default mappings)
 
 - Install, press the mapped key `` ` `` and start exploring. 
 - Enter code as normal, in insert mode.
 - Hit `Enter` in normal mode to evaluate a variable, statement or an expression in the current line. 
 - Visually select a range of lines and press `Enter` to evaluate the code in the range. 
 - The evaluation of the last line is returned and printed, so no `return` is needed in most cases.  
-  To avoid noise, if the only return of your execution is `nil`, e.g. from an assignment, like `a = 1`, it will not be printed, but shown as virtual text.
-- Use `print()` in your code to output the results into the console.  Accepts variable number of arguments, e.g. `print(var_1, var_2, ...)`.
-- Objects and functions are pretty printed, with function source paths.
+  To avoid noise, if the return of your execution is `nil`, e.g. from a loop or a function without return, it will not be printed, but shown as virtual text. 
+  The result of assignments on the last line will be also shown as virtual text.
+- Use `print()` in your code to output the results into the console.  It accepts variable number of arguments, e.g. `print(var_1, var_2, ...)`.
+- Objects and functions are pretty printed, with function details and their source paths.
 - Press `gf` to follow the paths in stack traces and to function sources. Truncated paths work too.
 
 > [!NOTE]
@@ -118,6 +118,29 @@ There are two functions available within the console:
 
 - `_ctx()` - will print the contents of the context
 - `_ctx_clear()` - clears the context
+
+
+## ⭐ Extra features
+
+### Attaching code evaluator to other buffers
+
+- The evaluator behind the console can be attached to any buffer by calling or mapping `require('lua-console.utils).attach(buf_number)` where `buf_number` can be omitted for current buffer.
+  You will be able to evaluate the code as in the console and follow links.  The evaluators and their contexts are isolated for each attached buffer.
+- You can also setup external code runners for languages other than lua.
+
+
+### Evaluating other languages
+
+- It is possible to setup external code executors for other languages.  There are examples for `ruby, python, go, rust and scheme` in the config.
+- To tell the evaluator which executor to use - prepend your code with ` ===lang ` on the line above or do `vim.bo.filetype = 'lang'`.  The prefix can be changed in the config, e.g.
+
+  ```
+  ===ruby
+    5.times { puts 'Hey' }
+  ```
+
+- You can also setup a custom formatter to format the executor output before appending results to the console or buffer.  
+- Unlike lua, the context is not preserved.
 
 
 ## Alternatives and comparison

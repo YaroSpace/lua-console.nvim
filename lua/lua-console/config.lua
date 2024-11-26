@@ -29,6 +29,7 @@ local default_config = {
     help = '?'
   },
   external_evaluators = {
+    lang_prefix = '===',
     ruby = {
       cmd = { 'ruby', '-e' },
       env = { RUBY_VERSION = '3.3.0' },

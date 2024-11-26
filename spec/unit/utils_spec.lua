@@ -392,7 +392,7 @@ describe('lua-console.utils', function()
 
         expected = config.buffer.prepend_result_with .. 'nil'
 
-        result = h.get_virtual_text(buf, 2, 2)
+       result = h.get_virtual_text(buf, 2, 2)
         assert.has_string(result, expected)
       end)
 
