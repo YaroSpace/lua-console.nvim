@@ -1,26 +1,13 @@
 local assert = require("luassert.assert")
-local colors = require 'term.colors'
+local match = require("luassert.match")
+
+_G.LOG = require('log')
 
 local M = {}
 
-_G.LOG = function(...) --luacheck: ignore
-  local caller = debug.getinfo(2)
-  local result = string.format('\nLOG (%s:%s) => ', caller.name or vim.fs.basename(caller.short_src) or '', caller.currentline or '')
-  local nargs = select('#', ...)
-  local var_no = ''
-
-  for i = 1, nargs do
-    local o = select(i, ...)
-
-    if i > 1 then result = result .. ',\n' end
-    if nargs > 1 then var_no = string.format('[%s] ', i) end
-
-    o = type(o) == 'function' and debug.getinfo(o) or o
-    result = result .. var_no .. vim.inspect(o)
-  end
-
-  io.write(colors.cyan(result), '\n')
-  return result
+--Remove tabs and spaces as tabs
+string.clean = function(str)
+  return vim.trim(str:gsub('\t', '')) --:gsub('%s%s+', '')
 end
 
 M.get_root = function()
@@ -35,12 +22,11 @@ M.to_string = function(tbl)
   if type(tbl) == 'string' then
     tbl = { tbl }
   end
-  return vim.trim(table.concat(tbl, '\n'):gsub('\t', ''))
+  return table.concat(tbl, '\n'):clean()
 end
 
 M.to_table = function(str)
-  str = vim.trim(str:gsub('\t', ''))
-  return vim.split(str or '', '\n', { trimempty = true })
+  return vim.split(str:clean() or '', '\n', { trimempty = true })
 end
 
 M.get_buffer = function(buf)
@@ -93,7 +79,7 @@ get_key_paths = function(tbl, path, paths)
 end
 
 ---Checks if an object contains properties with values
----@param state any
+---@param state table
 ---@param args table { table, table { property_name = value } }
 M.has_properties = function(state, args)
   vim.validate {
@@ -127,6 +113,29 @@ end
 
 assert:register('assertion', 'has_properties', M.has_properties, '', '')
 
+---Asserts provided callback
+---@param state table
+---@param arguments table { [1] = function(value): boolean }
+---@return function: boolean
+local function assert_arg(_, arguments)
+  local assert_cb = arguments[1]
+
+  return function(value)
+    assert_cb(value)
+    return true
+  end
+end
+
+  --weird workaround for bug in luassert.formatters.init.lua:220
+  --for blank matchers match._
+local function assert_arg_formatter(arg)
+  if not match.is_matcher(arg) then return end
+  if not arg.arguments then return '(_)' end
+end
+
+assert:register('matcher', 'assert_arg', assert_arg)
+assert:add_formatter(assert_arg_formatter)
+
 ---Asserts if object contains a string
 ---@param state table
 ---@param args table { table|string, string }
@@ -134,19 +143,18 @@ assert:register('assertion', 'has_properties', M.has_properties, '', '')
 M.has_string = function(state, args)
   vim.validate {
     arg_1 = { args[1], { 'string', 'table' } },
-    arg_2 = { args[2], 'string' },
+    arg_2 = { args[2], { 'string', 'table' } },
   }
 
   local mod = state.mod
   local o, pattern = args[1], args[2]
   local result
 
-  if type(o) == 'table' then
-    o = M.to_string(o)
-  end
+  if type(o) == 'table' then o = M.to_string(o) end
+  if type(pattern) == 'table' then pattern = M.to_string(pattern) end
 
-  o = vim.trim(o:gsub('\t', ''))
-  pattern = vim.trim(pattern:gsub('\t', ''))
+  o = vim.trim(o:clean())
+  pattern = vim.trim(pattern:clean())
 
   result = o:find(pattern, 1, true) and true or false
 

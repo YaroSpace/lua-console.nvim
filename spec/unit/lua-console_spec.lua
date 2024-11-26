@@ -1,7 +1,7 @@
-local assert = require("luassert.assert")
+local assert = require('luassert.assert')
 local h = require('spec_helper')
 
-describe("lua-console.nvim", function()
+describe('lua-console.nvim', function()
   local buf, win
   local console, config
   local expected, result
@@ -13,10 +13,10 @@ describe("lua-console.nvim", function()
 
   after_each(function()
     require('lua-console').deactivate()
-		buf, win = nil, nil
+    buf, win = nil, nil
   end)
 
-  describe("lua-console.nvim - setup", function()
+  describe('lua-console.nvim - setup', function()
     it('sets up with custom config', function()
       config = {
         buffer = {
@@ -28,6 +28,11 @@ describe("lua-console.nvim", function()
         mappings = {
           toggle = '!',
           eval = 'GG',
+        },
+        external_evaluators = {
+          python = {
+            cmd = { 'test' },
+          },
         },
       }
 
@@ -48,7 +53,7 @@ describe("lua-console.nvim", function()
       end)
     end)
 
-    describe("lua-console - open/close window", function()
+    describe('lua-console - open/close window', function()
       before_each(function()
         console.toggle_console()
         buf = vim.fn.bufnr('lua-console')
@@ -68,7 +73,7 @@ describe("lua-console.nvim", function()
         assert.are_same(Lua_console.win, win)
       end)
 
-      it("closes console window if it is open", function()
+      it('closes console window if it is open', function()
         console.toggle_console()
 
         win = vim.fn.bufwinid(buf)
@@ -137,14 +142,14 @@ describe("lua-console.nvim", function()
 
       it('shows help message on start', function()
         result = h.get_virtual_text(buf, 0)
-        assert.has_string(result, config.mappings.help .. ' - help' )
+        assert.has_string(result, config.mappings.help .. ' - help')
       end)
 
       it('it loads saved content on startup', function()
         vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
 
-				local path = vim.fn.stdpath('state') .. '/lua-console-test.lua'
-				config.setup { buffer = { save_path = path } }
+        local path = vim.fn.stdpath('state') .. '/lua-console-test.lua'
+        config.setup { buffer = { save_path = path } }
 
         local file = assert(io.open(path, 'w'))
 
