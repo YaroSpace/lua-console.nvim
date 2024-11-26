@@ -1,7 +1,21 @@
 local config = require('lua-console.config')
+local get_ctx, eval_lua
 
-local to_string = function(tbl)
-  return table.concat(tbl or {}, '\n')
+local to_string = function(tbl, sep, trim)
+  tbl = tbl or {}
+  sep = sep or '\n'
+
+  local line = table.concat(tbl, sep)
+  local patterns = { '\\r', '\\t', '\\n' }
+
+  if trim then
+    for _, pat in ipairs(patterns) do
+      line = line:gsub(pat, '')
+    end
+    line = line:gsub("([\"'])%s+", "%1"):gsub("%s+([\"'])", "%1"):gsub("%s%s+", ' ')
+  end
+
+  return line
 end
 
 local to_table = function(str)
@@ -12,13 +26,20 @@ local pack = function(...)
   return { ... }
 end
 
-local show_virtual_text = function(buf, id, text, line, position, highlight)
+---Shows virtual text in the buffer
+---@param buf number buffer
+---@param id number namespace id
+---@param text string text to show
+---@param lnum number line number
+---@param position string virtual text position
+---@param highlight string higlight group
+local show_virtual_text = function(buf, id, text, lnum, position, highlight)
   local ns = vim.api.nvim_create_namespace('Lua-console')
   local ext_mark = vim.api.nvim_buf_get_extmark_by_id(0, ns, id, {})
 
   if #ext_mark > 0 then vim.api.nvim_buf_del_extmark(0, ns, id) end
 
-  vim.api.nvim_buf_set_extmark(buf, ns, line, 0, {
+  vim.api.nvim_buf_set_extmark(buf, ns, lnum, 0, {
     id = id,
     virt_text = { { text, highlight } },
     virt_text_pos = position,
@@ -92,21 +113,45 @@ local get_path_lnum = function(path)
   return path, lnum
 end
 
+---Determines if there is an assigment on the line and returns its value
+---@param line string[]
+local get_assignment = function(line)
+  local lhs = line[1]:match('^(.-)%s*=')
+  local ret
+
+  if lhs then
+    ret = eval_lua({ lhs })
+    local is_error = ret[1]:find('[string "Lua console: "]', 1, true) -- means we could not evaluate the lhs
+    return not is_error and to_string(ret, '', true) or nil
+  end
+end
+
 local print_buffer = {}
 
 ---@param lines string[] Text to append to buffer after current selection
 local append_current_buffer = function(lines)
   local buf = vim.fn.bufnr()
   local lnum = math.max(vim.fn.line('.'), vim.fn.line('v'))
+  local prepend = config.buffer.prepend_result_with
 
-  lines[1] = config.buffer.prepend_result_with .. lines[1]
-
-  if #lines == 1 and lines[1]:find('nil') then
-    show_virtual_text(buf, 3, lines[1], lnum - 1, 'eol', 'Comment')
-    return
+  local virtual_text
+  if lines[#lines] == 'nil' then
+    table.remove(lines)
+    virtual_text = 'nil'
   end
 
+  local assignment_value = get_assignment(vim.fn.getbufline(buf, lnum, lnum))
+  if assignment_value ~= nil then virtual_text = assignment_value end
+
+  if virtual_text then
+    show_virtual_text(buf, 3, prepend .. virtual_text, lnum - 1, 'eol', 'Comment')
+  end
+
+  if #lines == 0 then return end
+
+  lines[1] = prepend .. lines[1]
   table.insert(lines, 1, '') -- insert an empty line
+
   vim.api.nvim_buf_set_lines(buf, lnum, lnum, false, lines)
 end
 
@@ -171,7 +216,7 @@ local function add_return(tbl)
   return ret
 end
 
-local get_ctx = function(buf)
+get_ctx = function(buf)
   buf = buf or vim.fn.bufnr()
   Lua_console.ctx = Lua_console.ctx or {}
 
@@ -199,9 +244,9 @@ end
 
 --- Evaluates Lua code and returns pretty printed result with errors if any
 --- @param lines string[] table with lines of Lua code
---- @param ctx table environment to execute code in
+--- @param ctx? table environment to execute code in
 --- @return string[]
-local eval_lua = function(lines, ctx)
+eval_lua = function(lines, ctx)
   vim.validate({ lines = { lines, 'table'} })
 
   local lines_with_return = add_return(lines)
@@ -218,14 +263,15 @@ local eval_lua = function(lines, ctx)
 
   ---@cast code function
   local result = pack(xpcall(code, debug.traceback))
-  vim.api.nvim_buf_set_var(vim.fn.bufnr(), 'ctx', env)
+  local status, err = result[1], result[2]
 
-  if result[1] then
+  if status then
     table.remove(result, 1)
+
     if #result > 0 then pretty_print(unpack(result))
     else pretty_print(nil) end
   else
-    vim.list_extend(print_buffer, clean_stacktrace(result[2]))
+    vim.list_extend(print_buffer, clean_stacktrace(err))
   end
 
   return print_buffer

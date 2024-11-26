@@ -86,7 +86,6 @@ describe("lua-console.nvim - mappings", function()
 				=> [1] 1, [2] "A-10"
 				[1] 2, [2] "A-20"
 				[1] 3, [2] "A-30"
-				nil
 			]]
 
 			assert.has_string(result, expected)

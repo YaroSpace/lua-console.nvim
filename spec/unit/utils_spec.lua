@@ -31,7 +31,7 @@ describe('lua-console.utils', function()
   		-- code
   	end)
 
-    pending('preserves context for different buffers', function()
+    pending('preserves context', function()
       -- code
     end)
 
@@ -253,7 +253,7 @@ describe('lua-console.utils', function()
   				a = 1,
   				b = 2
 				}
-				nil]]
+				]]
 
       result = eval_lua(code)
       assert.has_string(result, expected)
@@ -331,7 +331,7 @@ describe('lua-console.utils', function()
         h.set_buffer(buf, content)
       end)
 
-      it('evaluates lua in current buffer - single line', function()
+      it('single line', function()
         vim.api.nvim_win_set_cursor(win, { 1, 0 })
         utils.eval_code_in_buffer()
 
@@ -348,7 +348,7 @@ describe('lua-console.utils', function()
         assert.has_string(result, expected)
       end)
 
-      it('evaluates lua in current buffer - multiline', function()
+      it('multiline', function()
         vim.api.nvim_win_set_cursor(win, { 2, 0 })
         vim.cmd.exe("'normal V3j'")
 
@@ -371,7 +371,6 @@ describe('lua-console.utils', function()
 					[1] 8, [2] 40
 					[1] 9, [2] 45
 					[1] 10, [2] 50
-					nil
 					Some text here
   			]])
 
@@ -379,7 +378,7 @@ describe('lua-console.utils', function()
         assert.has_string(result, expected)
       end)
 
-      it('evaluates lua in current buffer - shows nil as virtual text', function()
+      it('shows nil as virtual text', function()
         vim.api.nvim_win_set_cursor(win, { 1, 0 })
         h.send_keys('V2j')
 
@@ -394,6 +393,26 @@ describe('lua-console.utils', function()
         expected = config.buffer.prepend_result_with .. 'nil'
 
         result = h.get_virtual_text(buf, 2, 2)
+        assert.has_string(result, expected)
+      end)
+
+      it('shows value of the assignment on the last line as virtual text', function()
+        vim.api.nvim_win_set_cursor(win, { 1, 0 })
+        h.send_keys('V4j')
+
+        content = h.to_table([[
+					a = 5
+					for i = 1, 5 do
+						i = i + 5
+					end
+					vim.bo.filetype = tostring(a + 5) .. 'test'
+  			]])
+        h.set_buffer(buf, content)
+        utils.eval_code_in_buffer()
+
+        expected = config.buffer.prepend_result_with .. '"10test"'
+
+        result = h.get_virtual_text(buf, 4, 4)
         assert.has_string(result, expected)
       end)
 
