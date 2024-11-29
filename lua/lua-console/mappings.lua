@@ -71,7 +71,9 @@ M.set_evaluator_mappings = function(buf)
 
       if vim.fn.filereadable(path) == 0 then return end
 
-      vim.api.nvim_win_close(0, false)
+      local win = vim.fn.bufwinid(buf)
+      if win == Lua_console.win then vim.api.nvim_win_close(win, false) end
+
       vim.cmd("vs " .. path)
       vim.api.nvim_win_set_cursor(0, { lnum, 0 })
     end,

@@ -22,57 +22,41 @@ describe('lua-console.utils', function()
     buf = nil
   end)
 
-  pending('attaches to a buffer', function()
-  	pending('evaluates code', function()
-  		-- code
-  	end)
-
-  	pending('follows links', function()
-  		-- code
-  	end)
-
-    pending('preserves context', function()
-      -- code
-    end)
-
-    -- buf = vim.api.nvim_create_buf(true, true)
-  end)
-
   describe('eval lua - single line', function()
-    local eval_lua = utils.eval_lua
+    local lua_evaluator = utils.lua_evaluator
     local code, result
 
     it('evaluates expressions without return', function()
       code = { 'a={a=1, b=2}' }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, 'nil')
     end)
 
     it('evaluates statements without return', function()
       code = { "string.format('[%s]', 'test')" }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, '[test]')
     end)
 
     it('evaluates statements with return', function()
       code = { "return string.format('[%s]', 'test')" }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, '[test]')
     end)
 
     it('fails on expressions with return', function()
       code = { 'return a={a=1, b=2}' }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, "'<eof>' expected near '='")
     end)
   end)
 
   describe('eval lua - multiple lines', function()
-    local eval_lua = utils.eval_lua
+    local lua_evaluator = utils.lua_evaluator
     local code, result
 
     it('evaluates code ending with expression', function()
@@ -81,7 +65,7 @@ describe('lua-console.utils', function()
 				a = a + 5
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, 'nil')
     end)
 
@@ -92,7 +76,7 @@ describe('lua-console.utils', function()
 				a
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, '15')
     end)
 
@@ -103,7 +87,7 @@ describe('lua-console.utils', function()
 				return a
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, '15')
     end)
 
@@ -114,7 +98,7 @@ describe('lua-console.utils', function()
 				end
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, 'nil')
     end)
 
@@ -124,39 +108,39 @@ describe('lua-console.utils', function()
 				a:find('str')
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, '[1] 6, [2] 8')
     end)
   end)
 
   describe('preserving context', function()
-    local eval_lua = utils.eval_lua
+    local lua_evaluator = utils.lua_evaluator
     local code, result, expected
 
     it('preserves context between executions if config is set', function()
       code = { 'a = 5' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { 'a = a + 5' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { 'a' }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, '10')
     end)
 
     it('does not preserves context between executions if config is not set', function()
       config.setup { buffer = { preserve_context = false } }
       code = { 'a = 5' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { 'a = a + 5' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { 'a' }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, 'nil')
     end)
 
@@ -164,10 +148,10 @@ describe('lua-console.utils', function()
       config.setup { buffer = { preserve_context = true } }
 
       code = { 'test_1 = 5; b = 10; local c = 100' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { 'test_1 = test_1 + 5; b = b * 10; c = c - 50' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { '_ctx()' }
 
@@ -178,7 +162,7 @@ describe('lua-console.utils', function()
 				}
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, expected)
     end)
 
@@ -186,20 +170,20 @@ describe('lua-console.utils', function()
       config.setup { buffer = { preserve_context = true } }
 
       code = { 'test_1 = 5; b = 10; local c = 100' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { 'test_1 = test_1 + 5; b = b * 10; c = c - 50' }
-      eval_lua(code)
+      lua_evaluator(code)
 
       code = { '_ctx_clear()' }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, 'nil')
     end)
   end)
 
   describe('eval lua - pretty print', function()
-    local eval_lua = utils.eval_lua
+    local lua_evaluator = utils.lua_evaluator
     local code, result, expected
 
     it('pretty prints objects', function()
@@ -219,7 +203,7 @@ describe('lua-console.utils', function()
         ['5'] = 5,
       }
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, expected)
     end)
 
@@ -228,7 +212,7 @@ describe('lua-console.utils', function()
 				vim.fn.bufnr
 				]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, 'short_src = "vim/_editor.lua')
     end)
 
@@ -255,13 +239,13 @@ describe('lua-console.utils', function()
 				}
 				]]
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, expected)
     end)
   end)
 
   describe('eval lua - error messages', function()
-    local eval_lua = utils.eval_lua
+    local lua_evaluator = utils.lua_evaluator
     local code, result, expected
 
     it('gives an error message on syntax error', function()
@@ -271,7 +255,7 @@ describe('lua-console.utils', function()
 				end
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, "unexpected symbol near ')'")
     end)
 
@@ -280,7 +264,7 @@ describe('lua-console.utils', function()
 				vim.fn(nil)
 			]])
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
       assert.has_string(result, "attempt to call field 'fn' (a table value)")
     end)
 
@@ -295,7 +279,7 @@ describe('lua-console.utils', function()
 					[C]: in function 'assert'
 					vim/fs.lua: in function <vim/fs.lua:0>]]
 
-      result = eval_lua(code)
+      result = lua_evaluator(code)
 
       assert.has_string(result, expected)
       assert.is_not.has_string(result, 'lua-console.nvim')
@@ -316,7 +300,7 @@ describe('lua-console.utils', function()
       win = nil
     end)
 
-    describe('eval_lua_in_buffer', function()
+    describe('lua_evaluator_in_buffer', function()
       local result, expected, content
 
       before_each(function()
@@ -390,7 +374,7 @@ describe('lua-console.utils', function()
         h.set_buffer(buf, content)
         utils.eval_code_in_buffer()
 
-        expected = config.buffer.prepend_result_with .. 'nil'
+        expected = config.buffer.result_prefix .. 'nil'
 
        result = h.get_virtual_text(buf, 2, 2)
         assert.has_string(result, expected)
@@ -410,7 +394,7 @@ describe('lua-console.utils', function()
         h.set_buffer(buf, content)
         utils.eval_code_in_buffer()
 
-        expected = config.buffer.prepend_result_with .. '"10test"'
+        expected = config.buffer.result_prefix .. '"10test"'
 
         result = h.get_virtual_text(buf, 4, 4)
         assert.has_string(result, expected)

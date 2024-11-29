@@ -29,6 +29,11 @@ describe("lua-console.nvim", function()
           toggle = '!',
           eval = 'GG',
         },
+        external_evaluators = {
+          python = {
+            cmd = { 'test' }
+          }
+        }
       }
 
       console.setup(config)

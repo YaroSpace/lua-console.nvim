@@ -1,5 +1,5 @@
 local config = require('lua-console.config')
-local get_ctx, eval_lua
+local get_ctx, lua_evaluator
 
 local to_string = function(tbl, sep, trim)
   tbl = tbl or {}
@@ -120,7 +120,7 @@ local get_assignment = function(line)
   local ret
 
   if lhs then
-    ret = eval_lua({ lhs })
+    ret = lua_evaluator { lhs }
     local is_error = ret[1]:find('[string "Lua console: "]', 1, true) -- means we could not evaluate the lhs
     return not is_error and to_string(ret, '', true) or nil
   end
@@ -128,11 +128,13 @@ end
 
 local print_buffer = {}
 
----@param lines string[] Text to append to buffer after current selection
+---@param lines string[] Text to append to current buffer after current selection
 local append_current_buffer = function(lines)
+  if not lines then return end
+
   local buf = vim.fn.bufnr()
-  local lnum = math.max(vim.fn.line('.'), vim.fn.line('v'))
-  local prepend = config.buffer.prepend_result_with
+  local lnum = vim.fn.line('.')
+  local prefix = config.buffer.result_prefix
 
   local virtual_text
   if lines[#lines] == 'nil' then
@@ -144,19 +146,20 @@ local append_current_buffer = function(lines)
   if assignment_value ~= nil then virtual_text = assignment_value end
 
   if virtual_text then
-    show_virtual_text(buf, 3, prepend .. virtual_text, lnum - 1, 'eol', 'Comment')
+    show_virtual_text(buf, 3, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
   end
 
   if #lines == 0 then return end
 
-  lines[1] = prepend .. lines[1]
+  lines[1] = prefix .. lines[1]
   table.insert(lines, 1, '') -- insert an empty line
 
   vim.api.nvim_buf_set_lines(buf, lnum, lnum, false, lines)
 end
 
----Pretty prints objects
+---Pretty prints objects and appends to print_buffer
 ---@param ... any[]
+---@return string[]
 local pretty_print = function(...)
   local result, var_no = '', ''
   local nargs = select('#', ...)
@@ -171,7 +174,9 @@ local pretty_print = function(...)
     result = result .. var_no .. vim.inspect(o)
   end
 
-  vim.list_extend(print_buffer, to_table(result))
+  result = to_table(result)
+  vim.list_extend(print_buffer, result)
+
   return result
 end
 
@@ -246,8 +251,8 @@ end
 --- @param lines string[] table with lines of Lua code
 --- @param ctx? table environment to execute code in
 --- @return string[]
-eval_lua = function(lines, ctx)
-  vim.validate({ lines = { lines, 'table'} })
+lua_evaluator = function(lines, ctx)
+  vim.validate { lines = { lines, 'table'} }
 
   local lines_with_return = add_return(lines)
   local env = ctx or get_ctx()
@@ -277,44 +282,66 @@ eval_lua = function(lines, ctx)
   return print_buffer
 end
 
+local function process_external_result(ret, formatter)
+  ret = to_table(ret)
+  ret = trim_empty_lines(ret)
+
+	if #ret == 0 then return end
+
+	if formatter and type(formatter) == 'function' then
+	  ret = formatter(ret)
+	end
+
+  vim.schedule(function()
+    append_current_buffer(ret)
+  end)
+end
+
+---Gets external evaluator for requested language
+---@param lang string
+---@return function|nil evaluator function(lines:string):string[]
 local get_external_evaluator = function(lang)
-  local eval_config = config.external_evaluators[lang]
-  if not (eval_config and eval_config.cmd) then
+  local eval_config = config.external_evaluators
+  local lang_config = eval_config[lang]
+  local code_prefix = lang_config.code_prefix or ''
+
+  if not (lang_config and lang_config.cmd) then
     vim.notify(string.format("No external evaluator for language '%s' found", lang), vim.log.levels.WARN)
     return
   end
 
-  local job_opts = {
-    env = eval_config.env or { EMPTY = '' },
-	  on_stdout = function(_, ret, _)
-      ret = trim_empty_lines(ret or {})
-	    if #ret == 0 then return end
+  local opts = vim.tbl_extend('force', {}, eval_config.default_process_opts)
 
-	    local formatter = eval_config.formatter
-	    if formatter and type(formatter) == 'function' then
-	      ret = formatter(ret)
-	    end
-	    append_current_buffer(ret)
-	  end,
+  opts.stdout = opts.stdout or function(_, ret)
+    if not ret then return end
 
-	  on_stderr = function(_, ret, _)
-      ret = trim_empty_lines(ret or {})
-	    if #ret > 0 then append_current_buffer(ret) end
-	  end,
+    vim.schedule(function()
+      process_external_result(ret, lang_config.formatter)
+    end)
+  end
 
-    on_exit = function() end,
-	  stderr_buffered = true,
-	  stdout_buffered = true,
-  }
+  opts.stderr = opts.stderr or function(_, ret)
+    if not ret then return end
+    ret = ret:gsub(code_prefix, '')
+
+    vim.schedule(function()
+      process_external_result(ret, lang_config.formatter)
+    end)
+  end
+
+  opts.on_exit = opts.on_exit or function() end
 
   return function(lines)
-    local code = eval_config.prepend_code .. ' ' .. to_string(lines)
-    local cmd = eval_config.cmd
+    local code = code_prefix .. ' ' .. to_string(lines)
+    local cmd = vim.tbl_extend('force', {}, lang_config.cmd)
+    table.insert(cmd, code)
 
-    vim.list_extend(cmd, { code })
-    vim.fn.jobstart(cmd, job_opts)
+    local status, id = pcall(vim.system, cmd, opts, opts.on_exit)
+    if not status then
+      vim.notify(('Could not run external evaluator for lang: %s.  Error: %s'):format(lang, id), vim.log.levels.ERROR)
+    end
 
-    return {}
+    return {}, id
   end
 end
 
@@ -331,7 +358,7 @@ local get_evaluator = function(buf, lines)
   end
 
   if lang == 'lua' then
-    evaluator = eval_lua
+    evaluator = lua_evaluator
   else
     evaluator = get_external_evaluator(lang)
   end
@@ -351,6 +378,7 @@ local eval_code_in_buffer = function()
   if v_start > v_end then
     v_start, v_end = v_end, v_start
   end
+  vim.fn.cursor(v_end, 0)
 
   local lines = vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
   lines = remove_empty_lines(lines)
@@ -373,8 +401,12 @@ local load_messages = function()
 	vim.ui_attach(ns, { ext_messages = true }, function(event, entries) ---@diagnostic disable-line
 		if event ~= "msg_history_show" then return end
     local messages = vim.tbl_map(function(e) return e[2][1][2] end, entries)
-	  if #messages > 0 then append_current_buffer(messages) end
-	  vim.api.nvim_input('<Down>')
+	  if #messages == 0 then return end
+
+	  vim.schedule(function()
+	    append_current_buffer(messages)
+	    vim.api.nvim_input('<Down>')
+	  end)
 	end)
 
 	vim.api.nvim_exec2('messages', {})
@@ -387,18 +419,20 @@ local get_plugin_path = function()
 end
 
 ---Attaches evaluator (mappings and context) to a buffer
----@param buf? number buffer number, default is current buffer
+---@param buf? number buffer number, current buffer is used if omitted
 local attach = function(buf)
   buf = buf or vim.fn.bufnr()
+  local name = vim.fn.bufname()
   require('lua-console.mappings').set_evaluator_mappings(buf)
-  vim.notify(string.format('Evaluator attached to buffer [%s]', buf), vim.log.levels.INFO)
+  vim.notify(string.format('Evaluator attached to buffer [%s:%s]', name, buf), vim.log.levels.INFO)
 end
 
 return {
   toggle_help = toggle_help,
   load_saved_console = load_saved_console,
   append_current_buffer = append_current_buffer,
-  eval_lua = eval_lua,
+  pretty_print = pretty_print,
+  lua_evaluator = lua_evaluator,
   eval_code_in_buffer = eval_code_in_buffer,
   get_plugin_path = get_plugin_path,
   load_messages = load_messages,

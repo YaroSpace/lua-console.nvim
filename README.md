@@ -131,16 +131,18 @@ There are two functions available within the console:
 
 ### Evaluating other languages
 
-- It is possible to setup external code executors for other languages.  There are examples for `ruby, python, go, rust and scheme` in the config.
-- To tell the evaluator which executor to use - prepend your code with ` ===lang ` on the line above or do `vim.bo.filetype = 'lang'`.  The prefix can be changed in the config, e.g.
+- It is possible to setup external code executors for other languages.  There are examples for `ruby, racket` in the `exev_config.lua`. `Python, go, rust` - are WIP. 
+- The language is determined either from the buffer type, which you can set manually with `vim.bo.filetype = 'lang'` or by prefixing your code with `===lang` on the line above. 
+  The prefix can be changed in the config, e.g.
 
   ```
   ===ruby
     5.times { puts 'Hey' }
   ```
 
-- You can also setup a custom formatter to format the executor output before appending results to the console or buffer.  
-- Unlike lua, the context is not preserved.
+- You can also setup a custom formatter to format the executor output before appending results to the console or buffer. Example is in the config.
+- Unlike lua, the context with external evaluators is not preserved yet, but it is WIP.
+u
 
 
 ## Alternatives and comparison

@@ -2,7 +2,7 @@ local M = {}
 
 local default_config = {
   buffer = {
-    prepend_result_with = '=> ',
+    result_prefix = '=> ',
     save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
     load_on_start = true, -- load saved session on first entry
     preserve_context = true
@@ -28,28 +28,13 @@ local default_config = {
     resize_down = '<C-Down>',
     help = '?'
   },
-  external_evaluators = {
-    lang_prefix = '===',
-    ruby = {
-      cmd = { 'ruby', '-e' },
-      env = { RUBY_VERSION = '3.3.0' },
-      prepend_code = '$stdout.sync = true;',
-      formatter = function(result)
-        local sep_start = '================================>'
-        local sep_end = '<================================'
-        table.insert(result, 1, sep_start)
-        table.insert(result, sep_end)
-
-        return result
-      end
-    }
-  }
 }
 
 M.setup = function(opts)
+  default_config.external_evaluators = require('lua-console.exev_config')
   default_config = vim.tbl_deep_extend("force", default_config, opts or {})
-  setmetatable(M, { __index = default_config } )
 
+  setmetatable(M, { __index = default_config } )
   return M
 end
 
