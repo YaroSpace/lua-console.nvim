@@ -12,7 +12,7 @@ local to_string = function(tbl, sep, trim)
     for _, pat in ipairs(patterns) do
       line = line:gsub(pat, '')
     end
-    line = line:gsub("([\"'])%s+", "%1"):gsub("%s+([\"'])", "%1"):gsub("%s%s+", ' ')
+    line = line:gsub('(["\'])%s+', '%1'):gsub('%s+(["\'])', '%1'):gsub('%s%s+', ' ')
   end
 
   return line
@@ -20,10 +20,6 @@ end
 
 local to_table = function(str)
   return vim.split(str or '', '\n', { trimempty = true })
-end
-
-local pack = function(...)
-  return { ... }
 end
 
 ---Shows virtual text in the buffer
@@ -45,7 +41,7 @@ local show_virtual_text = function(buf, id, text, lnum, position, highlight)
     virt_text_pos = position,
     virt_text_hide = true,
     undo_restore = false,
-    invalidate = true
+    invalidate = true,
   })
 end
 
@@ -63,7 +59,8 @@ local toggle_help = function(buf)
   elseif ids[1][1] == 1 then
     vim.api.nvim_buf_del_extmark(buf, ns, 1)
 
-    message = [['%s' - eval a line or selection, '%s' - load messages, '%s' - save console, '%s' - load console, '%s'/'%s - resize window, '%s' - toggle help]]
+    message =
+      [['%s' - eval a line or selection, '%s' - load messages, '%s' - save console, '%s' - load console, '%s'/'%s - resize window, '%s' - toggle help]]
     message = string.format(message, cm.eval, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
 
     local visible_line = vim.fn.line('w0')
@@ -92,7 +89,7 @@ local get_source_lnum = function()
   local lnum, cnum = vim.fn.line('.'), vim.fn.col('.')
   local line = vim.fn.getline(lnum)
 
-  local dnum = line:match(":(%d+)", cnum)
+  local dnum = line:match(':(%d+)', cnum)
   if dnum then return tonumber(dnum) end
 
   line = vim.fn.getline(lnum - 5)
@@ -106,9 +103,7 @@ local get_path_lnum = function(path)
   local lnum = get_source_lnum()
   lnum = math.max(1, lnum)
 
-  if path:find("^%.%.%.") then
-    path = infer_truncated_path(path)
-  end
+  if path:find('^%.%.%.') then path = infer_truncated_path(path) end
 
   return path, lnum
 end
@@ -116,6 +111,8 @@ end
 ---Determines if there is an assigment on the line and returns its value
 ---@param line string[]
 local get_assignment = function(line)
+  if not line or #line == 0 then return end
+
   local lhs = line[1]:match('^(.-)%s*=')
   local ret
 
@@ -128,12 +125,12 @@ end
 
 local print_buffer = {}
 
+---@param buf number
 ---@param lines string[] Text to append to current buffer after current selection
-local append_current_buffer = function(lines)
-  if not lines then return end
+local append_current_buffer = function(buf, lines)
+  if not lines or #lines == 0 then return end
 
-  local buf = vim.fn.bufnr()
-  local lnum = vim.fn.line('.')
+  local lnum = vim.fn.line('.', vim.fn.bufwinid(buf))
   local prefix = config.buffer.result_prefix
 
   local virtual_text
@@ -145,9 +142,7 @@ local append_current_buffer = function(lines)
   local assignment_value = get_assignment(vim.fn.getbufline(buf, lnum, lnum))
   if assignment_value ~= nil then virtual_text = assignment_value end
 
-  if virtual_text then
-    show_virtual_text(buf, 3, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
-  end
+  if virtual_text then show_virtual_text(buf, 3, prefix .. virtual_text, lnum - 1, 'eol', 'Comment') end
 
   if #lines == 0 then return end
 
@@ -181,7 +176,9 @@ local pretty_print = function(...)
 end
 
 local function remove_empty_lines(tbl)
-  return vim.tbl_filter(function(el) return vim.fn.trim(el) ~= '' end, tbl)
+  return vim.tbl_filter(function(el)
+    return vim.fn.trim(el) ~= ''
+  end, tbl)
 end
 
 local function trim_empty_lines(tbl)
@@ -200,7 +197,7 @@ local function clean_stacktrace(error)
   for i = #lines, 1, -1 do
     if lines[i]:find('lua-console.nvim', 1, true) then
       table.remove(lines, i)
-      if lines[i-1]:find("[C]: in function 'xpcall'", 1, true) then
+      if lines[i - 1]:find("[C]: in function 'xpcall'", 1, true) then
         table.remove(lines, i - 1)
         break
       end
@@ -221,11 +218,13 @@ local function add_return(tbl)
   return ret
 end
 
-get_ctx = function(buf)
+function get_ctx(buf)
   buf = buf or vim.fn.bufnr()
-  Lua_console.ctx = Lua_console.ctx or {}
 
-  local ctx = Lua_console.ctx[buf]
+  local lc = _G.Lua_console
+  lc.ctx = lc.ctx or {}
+
+  local ctx = lc.ctx[buf]
   if config.buffer.preserve_context and ctx then return ctx end
 
   local env, mt = {}, {}
@@ -236,14 +235,14 @@ get_ctx = function(buf)
       return vim.tbl_extend('force', {}, env)
     end,
     _ctx_clear = function()
-      Lua_console.ctx[buf] = nil
+      lc.ctx[buf] = nil
     end,
     __index = function(_, key)
       return mt[key] and mt[key] or _G[key]
-    end
+    end,
   }
 
-  Lua_console.ctx[buf] = env
+  lc.ctx[buf] = env
   return setmetatable(env, mt)
 end
 
@@ -251,30 +250,31 @@ end
 --- @param lines string[] table with lines of Lua code
 --- @param ctx? table environment to execute code in
 --- @return string[]
-lua_evaluator = function(lines, ctx)
-  vim.validate { lines = { lines, 'table'} }
+function lua_evaluator(lines, ctx)
+  vim.validate { lines = { lines, 'table' } }
 
   local lines_with_return = add_return(lines)
   local env = ctx or get_ctx()
 
-  if not select(2, load(to_string(lines_with_return), '', 't', env)) then
-    lines = lines_with_return
-  end
+  if not select(2, load(to_string(lines_with_return), '', 't', env)) then lines = lines_with_return end
 
-  local code, error = load(to_string(lines), 'Lua console: ', "t", env)
+  local code, error = load(to_string(lines), 'Lua console: ', 't', env)
   if error then return to_table(error) end
 
-	print_buffer = {}
+  print_buffer = {}
 
   ---@cast code function
-  local result = pack(xpcall(code, debug.traceback))
+  local result = { xpcall(code, debug.traceback) }
   local status, err = result[1], result[2]
 
   if status then
     table.remove(result, 1)
 
-    if #result > 0 then pretty_print(unpack(result))
-    else pretty_print(nil) end
+    if #result > 0 then
+      pretty_print(unpack(result))
+    else
+      pretty_print(nil)
+    end
   else
     vim.list_extend(print_buffer, clean_stacktrace(err))
   end
@@ -282,28 +282,40 @@ lua_evaluator = function(lines, ctx)
   return print_buffer
 end
 
-local function process_external_result(ret, formatter)
+local function process_external_result(buf, ret, lang_config)
   ret = to_table(ret)
   ret = trim_empty_lines(ret)
 
-	if #ret == 0 then return end
+  if #ret == 0 then return end
 
-	if formatter and type(formatter) == 'function' then
-	  ret = formatter(ret)
-	end
+  local formatter = lang_config.formatter
 
-  vim.schedule(function()
-    append_current_buffer(ret)
-  end)
+  if formatter then ret = formatter(ret) end
+
+  append_current_buffer(buf, ret)
+end
+
+---Returns default handler for external evaluator process output
+---@param buf number
+---@param std string 'out|err'
+---@param lang_config table
+---@return function function(err, result)
+local function default_handler(buf, _, lang_config)
+  return function(_, ret)
+    if not ret then return end
+
+    vim.schedule(function()
+      process_external_result(buf, ret, lang_config)
+    end)
+  end
 end
 
 ---Gets external evaluator for requested language
 ---@param lang string
----@return function|nil evaluator function(lines:string):string[]
-local get_external_evaluator = function(lang)
+---@return function|nil evaluator function(lines:string[]):string[]
+local get_external_evaluator = function(buf, lang)
   local eval_config = config.external_evaluators
   local lang_config = eval_config[lang]
-  local code_prefix = lang_config.code_prefix or ''
 
   if not (lang_config and lang_config.cmd) then
     vim.notify(string.format("No external evaluator for language '%s' found", lang), vim.log.levels.WARN)
@@ -311,29 +323,15 @@ local get_external_evaluator = function(lang)
   end
 
   local opts = vim.tbl_extend('force', {}, eval_config.default_process_opts)
+  opts = vim.tbl_extend('force', opts, lang_config)
 
-  opts.stdout = opts.stdout or function(_, ret)
-    if not ret then return end
-
-    vim.schedule(function()
-      process_external_result(ret, lang_config.formatter)
-    end)
-  end
-
-  opts.stderr = opts.stderr or function(_, ret)
-    if not ret then return end
-    ret = ret:gsub(code_prefix, '')
-
-    vim.schedule(function()
-      process_external_result(ret, lang_config.formatter)
-    end)
-  end
-
+  opts.stdout = opts.stdout or default_handler(buf, 'out', lang_config)
+  opts.stderr = opts.stderr or default_handler(buf, 'err', lang_config)
   opts.on_exit = opts.on_exit or function() end
 
   return function(lines)
-    local code = code_prefix .. ' ' .. to_string(lines)
     local cmd = vim.tbl_extend('force', {}, lang_config.cmd)
+    local code = (lang_config.code_prefix or '') .. ' ' .. to_string(lines)
     table.insert(cmd, code)
 
     local status, id = pcall(vim.system, cmd, opts, opts.on_exit)
@@ -347,32 +345,30 @@ end
 
 local get_evaluator = function(buf, lines)
   local evaluator
-  local lang = lines[1]:match("^" .. config.external_evaluators.lang_prefix .. "(.+)")
+  local lang = lines[1]:match('^' .. config.external_evaluators.lang_prefix .. '(.+)')
 
   if lang then table.remove(lines, 1) end
   lang = lang and lang or vim.bo[buf].filetype
 
   if lang == '' then
-    vim.notify('Plese specify the language to evaluate', vim.log.levels.WARN)
+    vim.notify('Plese specify the language to evaluate or set the filetype', vim.log.levels.WARN)
     return
   end
 
   if lang == 'lua' then
     evaluator = lua_evaluator
   else
-    evaluator = get_external_evaluator(lang)
+    evaluator = get_external_evaluator(buf, lang)
   end
 
   return evaluator
 end
 
 ---Evaluates code in the current line or visual selection and appends to current buffer
-local eval_code_in_buffer = function()
-  local buf  = vim.fn.bufnr()
+local eval_code_in_buffer = function(buf)
+  buf = buf or vim.fn.bufnr()
 
-  if vim.api.nvim_get_mode().mode == "V" then
-    vim.api.nvim_input("<Esc>")
-  end
+  if vim.api.nvim_get_mode().mode == 'V' then vim.api.nvim_input('<Esc>') end
 
   local v_start, v_end = vim.fn.line('.'), vim.fn.line('v')
   if v_start > v_end then
@@ -390,27 +386,29 @@ local eval_code_in_buffer = function()
   local result = evaluator(lines)
   if #result == 0 then return end
 
-  append_current_buffer(result)
+  append_current_buffer(buf, result)
 end
 
 ---Load messages into console
-local load_messages = function()
-	local ns = vim.api.nvim_create_namespace('Lua-console')
+local load_messages = function(buf)
+  local ns = vim.api.nvim_create_namespace('Lua-console')
 
-	---This way we catch the output of messages command, in case it was overriden by some other plugin, like Noice
-	vim.ui_attach(ns, { ext_messages = true }, function(event, entries) ---@diagnostic disable-line
-		if event ~= "msg_history_show" then return end
-    local messages = vim.tbl_map(function(e) return e[2][1][2] end, entries)
-	  if #messages == 0 then return end
+  ---This way we catch the output of messages command, in case it was overriden by some other plugin, like Noice
+  vim.ui_attach(ns, { ext_messages = true }, function(event, entries) ---@diagnostic disable-line
+    if event ~= 'msg_history_show' then return end
+    local messages = vim.tbl_map(function(e)
+      return e[2][1][2]
+    end, entries)
+    if #messages == 0 then return end
 
-	  vim.schedule(function()
-	    append_current_buffer(messages)
-	    vim.api.nvim_input('<Down>')
-	  end)
-	end)
+    vim.schedule(function()
+      append_current_buffer(buf, messages)
+      vim.api.nvim_input('<Down>') -- forcing to redraw buffer
+    end)
+  end)
 
-	vim.api.nvim_exec2('messages', {})
-	vim.ui_detach(ns)
+  vim.api.nvim_exec2('messages', {})
+  vim.ui_detach(ns)
 end
 
 local get_plugin_path = function()
@@ -437,5 +435,5 @@ return {
   get_plugin_path = get_plugin_path,
   load_messages = load_messages,
   get_path_lnum = get_path_lnum,
-  attach = attach
+  attach = attach,
 }

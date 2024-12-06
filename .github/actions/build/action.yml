@@ -71,7 +71,7 @@ runs:
       run: |
         luarocks install busted --local
         luarocks install luacheck --local
-        # luarocks install nlua --local
+        luarocks install inspect --local
       shell: bash
 
     - run: make test

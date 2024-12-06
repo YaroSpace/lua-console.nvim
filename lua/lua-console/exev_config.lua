@@ -1,3 +1,6 @@
+---Formats the output of external evaluator
+---@param result string[]
+---@return string[]
 local function generic_formatter(result)
   local sep_start = ('='):rep(vim.o.columns)
   local sep_end = ('='):rep(vim.o.columns)

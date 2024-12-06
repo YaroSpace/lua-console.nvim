@@ -2,7 +2,7 @@ local config, mappings, utils
 
 local get_or_create_buffer = function()
   --- @type number
-  local buf = Lua_console.buf
+  local buf = _G.Lua_console.buf
   if buf and vim.fn.bufloaded(buf) == 1 then return buf end
 
   local buf_name = utils.get_plugin_path() .. '/console'
@@ -29,11 +29,12 @@ local get_or_create_buffer = function()
   if config.buffer.load_on_start then utils.load_saved_console(buf) end
   utils.toggle_help(buf)
 
-  Lua_console.buf = buf
+  _G.Lua_console.buf = buf
   return buf
 end
 
 local get_win_size_pos = function()
+  local lc = _G.Lua_console
   local height = vim.o.lines
   local width = vim.o.columns
 
@@ -41,7 +42,7 @@ local get_win_size_pos = function()
     row = height - 1,
     col = 0,
     width = width - 2,
-    height = (Lua_console.height > 0) and Lua_console.height or math.floor(height * config.window.height)
+    height = (lc.height > 0) and lc.height or math.floor(height * config.window.height),
   }
 end
 
@@ -54,14 +55,16 @@ local create_window = function(buf)
   vim.wo[win].foldmethod = 'indent'
   vim.wo[win].winbar = ''
 
-  Lua_console.win = win
+  _G.Lua_console.win = win
   return win
 end
 
 local toggle_console = function()
-  if Lua_console.win and vim.api.nvim_win_is_valid(Lua_console.win) then
-    vim.api.nvim_win_close(Lua_console.win, false)
-    Lua_console.win = false
+  local lc = _G.Lua_console
+
+  if lc.win and vim.api.nvim_win_is_valid(lc.win) then
+    vim.api.nvim_win_close(lc.win, false)
+    lc.win = false
   else
     local buf = get_or_create_buffer()
     create_window(buf)
@@ -71,32 +74,32 @@ end
 local setup = function(opts)
   _G.Lua_console = { buf = false, win = false, height = 0, ctx = {} }
 
-  config = require("lua-console.config").setup(opts)
-  mappings = require("lua-console.mappings")
-  utils = require("lua-console.utils")
+  config = require('lua-console.config').setup(opts)
+  mappings = require('lua-console.mappings')
+  utils = require('lua-console.utils')
 
-  vim.keymap.set("n", config.mappings.toggle, "", {
+  vim.keymap.set('n', config.mappings.toggle, '', {
     callback = toggle_console,
-    desc = "Toggle Lua console"
+    desc = 'Toggle Lua console',
   })
 
   return config
 end
 
 local deactivate = function()
-  if Lua_console and vim.api.nvim_buf_is_valid(Lua_console.buf or -1) then
-    vim.api.nvim_buf_delete(Lua_console.buf, { force = true } )
-  end
+  local lc = _G.Lua_console
 
-  Lua_console = nil --luacheck: ignore
+  if lc and vim.api.nvim_buf_is_valid(lc.buf or -1) then vim.api.nvim_buf_delete(lc.buf, { force = true }) end
 
-	package.loaded['lua-console'] = nil
-	package.loaded['lua-console.config'] = nil
-	package.loaded['lua-console.mappings'] = nil
-	package.loaded['lua-console.utils'] = nil
+  _G.Lua_console = nil --luacheck: ignore
+
+  package.loaded['lua-console'] = nil
+  package.loaded['lua-console.config'] = nil
+  package.loaded['lua-console.mappings'] = nil
+  package.loaded['lua-console.utils'] = nil
 end
 
- return {
+return {
   toggle_console = toggle_console,
   setup = setup,
   deactivate = deactivate,

@@ -1,8 +1,9 @@
 local assert = require("luassert.assert")
-
-local M = {}
+local match = require("luassert.match")
 
 _G.LOG = require('log')
+
+local M = {}
 
 M.get_root = function()
   local path = debug.getinfo(1, "S").source:sub(2)
@@ -74,7 +75,7 @@ get_key_paths = function(tbl, path, paths)
 end
 
 ---Checks if an object contains properties with values
----@param state any
+---@param state table
 ---@param args table { table, table { property_name = value } }
 M.has_properties = function(state, args)
   vim.validate {
@@ -107,6 +108,29 @@ M.has_properties = function(state, args)
 end
 
 assert:register('assertion', 'has_properties', M.has_properties, '', '')
+
+---Asserts provided callback
+---@param state table
+---@param arguments table { [1] = function(value): boolean }
+---@return function: boolean
+local function assert_arg(_, arguments)
+  local assert_cb = arguments[1]
+
+  return function(value)
+    assert_cb(value)
+    return true
+  end
+end
+
+  --weird workaround for bug in luassert.formatters.init.lua:220
+  --for blank matchers match._
+local function assert_arg_formatter(arg)
+  if not match.is_matcher(arg) then return end
+  if not arg.arguments then return '(_)' end
+end
+
+assert:register('matcher', 'assert_arg', assert_arg)
+assert:add_formatter(assert_arg_formatter)
 
 ---Asserts if object contains a string
 ---@param state table
