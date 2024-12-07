@@ -2,13 +2,14 @@ local assert = require('luassert.assert')
 local h = require('spec_helper')
 
 describe('lua-console.nvim', function()
-  local buf, win
+  local buf, win, lc
   local console, config
   local expected, result
 
   before_each(function()
     console = require('lua-console')
     config = require('lua-console').setup()
+    lc = _G.Lua_console
   end)
 
   after_each(function()
@@ -38,12 +39,13 @@ describe('lua-console.nvim', function()
 
       console.setup(config)
       result = require('lua-console.config')
+      lc = _G.Lua_console
 
       console.toggle_console()
 
       assert.has_properties(result, config)
       assert.has_no.errors(function()
-        vim.keymap.del('n', config.mappings.eval, { buffer = Lua_console.buf })
+        vim.keymap.del('n', config.mappings.eval, { buffer = lc.buf })
       end)
     end)
 
@@ -67,10 +69,10 @@ describe('lua-console.nvim', function()
 
       it('opens console if it is closed', function()
         assert.are_not.same(buf, -1)
-        assert.are_same(Lua_console.buf, buf)
+        assert.are_same(lc.buf, buf)
 
         assert.are_not.same(win, -1)
-        assert.are_same(Lua_console.win, win)
+        assert.are_same(lc.win, win)
       end)
 
       it('closes console window if it is open', function()
@@ -80,7 +82,7 @@ describe('lua-console.nvim', function()
 
         assert.are_not.same(buf, -1)
         assert.are_same(win, -1)
-        assert.is_false(Lua_console.win)
+        assert.is_false(lc.win)
       end)
 
       it('creates a buffer with correct properties', function()
@@ -145,27 +147,61 @@ describe('lua-console.nvim', function()
         assert.has_string(result, config.mappings.help .. ' - help')
       end)
 
-      it('it loads saved content on startup', function()
-        vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
-
+      describe('save/load operations', function()
         local path = vim.fn.stdpath('state') .. '/lua-console-test.lua'
-        config.setup { buffer = { save_path = path } }
 
-        local file = assert(io.open(path, 'w'))
+        before_each(function()
+          vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
+          config.setup { buffer = { save_path = path } }
+        end)
 
-        local content = [[
-				for i=1, 10 do
-					a = i * 5
-				end
-			]]
-        file:write(content)
-        file:close()
+        after_each(function()
+          os.remove(path)
+        end)
 
-        console.toggle_console()
-        buf = vim.fn.bufnr('lua-console')
+        it('autosaves content when console window is closed', function()
+          console.toggle_console()
+          buf = vim.fn.bufnr('lua-console')
+          win = vim.fn.bufwinid(buf)
 
-        result = h.get_buffer(buf)
-        assert.has_string(result, content)
+          local content = h.to_table([[ Some code ]])
+          h.set_buffer(buf, content)
+
+          vim.api.nvim_win_close(win, true)
+          result = vim.fn.readfile(config.buffer.save_path)
+
+          assert.has_string(result, content)
+        end)
+
+        it('autosaves content when console buffer is closed', function()
+          console.toggle_console()
+          buf = vim.fn.bufnr('lua-console')
+          win = vim.fn.bufwinid(buf)
+
+          local content = h.to_table([[ Some code other ]])
+          h.set_buffer(buf, content)
+
+          vim.api.nvim_buf_delete(buf, { force = true })
+          result = vim.fn.readfile(config.buffer.save_path)
+
+          assert.has_string(result, content)
+        end)
+
+        it('it loads saved content on startup', function()
+          local content = h.to_table([[
+				    for i=1, 10 do
+					    a = i * 5
+				    end
+			    ]])
+			    vim.fn.writefile(content, config.buffer.save_path)
+
+          console.toggle_console()
+          buf = vim.fn.bufnr('lua-console')
+
+
+          result = h.get_buffer(buf)
+          assert.has_string(result, content)
+        end)
       end)
     end)
   end)

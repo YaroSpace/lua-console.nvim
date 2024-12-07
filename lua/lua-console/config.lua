@@ -4,7 +4,8 @@ local default_config = {
   buffer = {
     result_prefix = '=> ',
     save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
-    load_on_start = true, -- load saved session on first entry
+    autosave = true,
+    load_on_start = true, -- load saved session on start
     preserve_context = true,
   },
   window = {

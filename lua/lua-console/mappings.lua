@@ -32,7 +32,8 @@ M.set_console_mappings = function(buf)
     buffer = buf,
     desc = 'Save console',
     callback = function()
-      vim.cmd('silent write! ' .. config.buffer.save_path)
+      local contents = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      vim.fn.writefile(contents, config.buffer.save_path)
     end,
   })
 
@@ -95,6 +96,12 @@ M.set_console_autocommands = function(buf)
     callback = function()
       local lc = _G.Lua_console
       local win = lc.win
+
+      if config.buffer.autosave then
+        local contents = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        vim.fn.writefile(contents, config.buffer.save_path)
+      end
+
       if not win then return end
 
       if vim.api.nvim_win_is_valid(win) then
