@@ -60,8 +60,9 @@ local toggle_help = function(buf)
     vim.api.nvim_buf_del_extmark(buf, ns, 1)
 
     message =
-      [['%s' - eval a line or selection, '%s' - load messages, '%s' - save console, '%s' - load console, '%s'/'%s - resize window, '%s' - toggle help]]
-    message = string.format(message, cm.eval, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
+      [[%s - eval a line or selection, %s - open file, %s - load messages, %s - save console, %s - load console, %s/%s - resize window, %s - toggle help]]
+    message =
+      string.format(message, cm.eval, cm.open, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
 
     local visible_line = vim.fn.line('w0')
     show_virtual_text(buf, 2, message, visible_line - 1, 'overlay', 'Comment')

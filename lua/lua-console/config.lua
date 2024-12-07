@@ -22,6 +22,7 @@ local default_config = {
     toggle = '`',
     quit = 'q',
     eval = '<CR>',
+    open = 'gf',
     messages = 'M',
     save = 'S',
     load = 'L',

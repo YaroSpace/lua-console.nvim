@@ -1,17 +1,17 @@
-local assert = require("luassert.assert")
-local match = require("luassert.match")
+local assert = require('luassert.assert')
+local match = require('luassert.match')
 
 _G.LOG = require('log')
 
 local M = {}
 
 --Remove tabs and spaces as tabs
-string.clean = function(str)
-  return vim.trim(str:gsub('\t', '')) --:gsub('%s%s+', '')
+string.clean = function(str) --luacheck: ignore
+  return vim.trim(str:gsub('\t', '')) -- gsub('%s%s+', '')
 end
 
 M.get_root = function()
-  local path = debug.getinfo(1, "S").source:sub(2)
+  local path = debug.getinfo(1, 'S').source:sub(2)
   return vim.fs.root(path, '.git')
 end
 
@@ -19,14 +19,16 @@ end
 M.to_string = function(tbl)
   tbl = tbl or {}
 
-  if type(tbl) == 'string' then
-    tbl = { tbl }
-  end
+  if type(tbl) == 'string' then tbl = { tbl } end
   return table.concat(tbl, '\n'):clean()
 end
 
 M.to_table = function(str)
   return vim.split(str:clean() or '', '\n', { trimempty = true })
+end
+
+M.delete_buffer = function(buf)
+  vim.api.nvim_buf_delete(buf, { force = true })
 end
 
 M.get_buffer = function(buf)
@@ -49,8 +51,8 @@ M.get_virtual_text = function(buf, line_start, line_end)
   local ids = vim.api.nvim_buf_get_extmarks(buf, ns, { line_start or 0, 0 }, { line_end or 0, -1 }, {})
 
   if vim.tbl_isempty(ids) then
-  	_G.LOG('No extmarks found')
-  	return ''
+    _G.LOG('No extmarks found')
+    return ''
   end
 
   local mark = vim.api.nvim_buf_get_extmark_by_id(buf, ns, ids[1][1], { details = true })
@@ -64,16 +66,12 @@ get_key_paths = function(tbl, path, paths)
   path = path or {}
   paths = paths or {}
 
-  if type(tbl) ~= 'table' then
-    return
-  end
+  if type(tbl) ~= 'table' then return end
 
   for k, v in pairs(tbl) do
     local nested_path = vim.list_extend({ path }, { k })
 
-    if not get_key_paths(v, nested_path, paths) then
-      table.insert(paths, vim.fn.flatten(nested_path))
-    end
+    if not get_key_paths(v, nested_path, paths) then table.insert(paths, vim.fn.flatten(nested_path)) end
   end
   return paths
 end
@@ -126,8 +124,8 @@ local function assert_arg(_, arguments)
   end
 end
 
-  --weird workaround for bug in luassert.formatters.init.lua:220
-  --for blank matchers match._
+--weird workaround for bug in luassert.formatters.init.lua:220
+--for blank matchers match._
 local function assert_arg_formatter(arg)
   if not match.is_matcher(arg) then return end
   if not arg.arguments then return '(_)' end

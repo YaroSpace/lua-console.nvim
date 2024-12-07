@@ -11,7 +11,7 @@ ignore = {
   -- Neovim lua API + luacheck thinks variables like `vim.wo.spell = true` is
   -- invalid when it actually is valid. So we have to display rule `W122`.
   --
-  "122",
+  "122", -- setting read-only field of vim...
   "631",    -- max_line_length
   "621", -- incostistant indentation
   "611" -- line with whitespace
