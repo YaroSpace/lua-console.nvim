@@ -2,59 +2,65 @@ local M = {}
 
 local utils = require('lua-console.utils')
 local config = require('lua-console.config')
-local mappings
+
+local function set_map(buf, map, opts, mode)
+  if not map then return end
+  mode = mode or 'n'
+  opts.buffer = buf
+
+  vim.keymap.set(mode, map, '', opts)
+end
 
 M.set_console_mappings = function(buf)
-  mappings = config.mappings
+  local m = config.mappings
 
-  vim.api.nvim_buf_set_keymap(buf, 'n', mappings.resize_up, '', {
+  set_map(buf, m.resize_up, {
     desc = 'Resize up',
     callback = function()
       vim.cmd.resize('+5')
     end,
   })
 
-  vim.api.nvim_buf_set_keymap(buf, 'n', mappings.resize_down, '', {
+  set_map(buf, m.resize_down, {
     desc = 'Resize down',
     callback = function()
       vim.cmd.resize('-5')
     end,
   })
 
-  vim.api.nvim_buf_set_keymap(buf, 'n', mappings.messages, '', {
+  set_map(buf, m.messages, {
     desc = 'Load messages',
     callback = function()
       utils.load_messages(buf)
     end,
   })
 
-  vim.keymap.set({ 'n' }, mappings.save, '', {
-    buffer = buf,
+  set_map(buf, m.save, {
     desc = 'Save console',
     callback = function()
-      vim.cmd('silent write! ' .. config.buffer.save_path)
+      local contents = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      vim.fn.writefile(contents, config.buffer.save_path)
+      vim.notify('Lua console saved', vim.log.levels.INFO)
     end,
   })
 
-  vim.keymap.set({ 'n' }, mappings.load, '', {
-    buffer = buf,
+  set_map(buf, m.load, {
     desc = 'Load saved console',
     callback = function()
       utils.load_saved_console(buf)
       utils.toggle_help(buf)
+      vim.notify('Lua console loaded', vim.log.levels.INFO)
     end,
   })
 
-  vim.keymap.set({ 'n' }, mappings.quit, '', {
-    buffer = buf,
-    desc = 'Close console',
+  set_map(buf, m.quit, {
+    desc = 'Hide console',
     callback = function()
       vim.api.nvim_win_close(0, false)
     end,
   })
 
-  vim.keymap.set({ 'n' }, mappings.help, '', {
-    buffer = buf,
+  set_map(buf, m.help, {
     desc = 'Toggle help',
     callback = function()
       utils.toggle_help(buf)
@@ -63,13 +69,13 @@ M.set_console_mappings = function(buf)
 end
 
 M.set_evaluator_mappings = function(buf)
-  mappings = config.mappings
+  local m = config.mappings
 
-  vim.api.nvim_buf_set_keymap(buf, 'n', 'gf', '', {
+  set_map(buf, m.open, {
     desc = 'Opens file in vertical split',
     callback = function()
       local path, lnum = utils.get_path_lnum(vim.fn.expand('<cfile>'))
-      path = path:sub(1, 2) == '~' and vim.fn.expand(path) or path
+      path = vim.startswith(path, '~') and vim.fn.expand(path) or path
 
       if vim.fn.filereadable(path) == 0 then return end
 
@@ -81,11 +87,10 @@ M.set_evaluator_mappings = function(buf)
     end,
   })
 
-  vim.keymap.set({ 'n', 'v' }, mappings.eval, '', {
-    buffer = buf,
+  set_map(buf, m.eval, {
     desc = 'Eval code in current line or visual selection',
     callback = utils.eval_code_in_buffer,
-  })
+  }, { 'n', 'v' })
 end
 
 M.set_console_autocommands = function(buf)
@@ -95,6 +100,12 @@ M.set_console_autocommands = function(buf)
     callback = function()
       local lc = _G.Lua_console
       local win = lc.win
+
+      if config.buffer.autosave then
+        local contents = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        vim.fn.writefile(contents, config.buffer.save_path)
+      end
+
       if not win then return end
 
       if vim.api.nvim_win_is_valid(win) then

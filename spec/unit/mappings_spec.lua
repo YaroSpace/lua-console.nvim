@@ -8,10 +8,10 @@ describe('lua-console.nvim - mappings', function()
 
   before_each(function()
     mappings = {
-      toggle = '`',
-      quit = 'q',
+      toggle = '&&',
+      quit = 'qq',
       eval = '$$',
-      clear = 'C',
+      open = 'ff',
       messages = 'M',
       save = 'S',
       load = 'L',
@@ -30,6 +30,7 @@ describe('lua-console.nvim - mappings', function()
         save_path = vim.fn.stdpath('state') .. '/lua-console-test.lua',
       },
     }
+
     mappings = config.mappings
     console.toggle_console()
 
@@ -48,9 +49,6 @@ describe('lua-console.nvim - mappings', function()
 
   after_each(function()
     require('lua-console').deactivate()
-    for _, no in ipairs(vim.api.nvim_list_bufs()) do
-      vim.api.nvim_buf_delete(no, { force = true })
-    end
     buf, win = nil, nil
   end)
 
@@ -117,7 +115,7 @@ describe('lua-console.nvim - mappings', function()
       h.set_buffer(buf, content)
 
       h.send_keys(mappings.save)
-      h.send_keys(mappings.clear)
+      h.send_keys('ggdG')
       h.send_keys(mappings.load)
 
       result = h.get_buffer(buf)
@@ -136,7 +134,7 @@ describe('lua-console.nvim - mappings', function()
       h.send_keys(mappings.help)
 
       result = h.get_virtual_text(buf)
-      assert.has_string(result, "'" .. config.mappings.eval .. "' - eval a line or selection")
+      assert.has_string(result, config.mappings.eval .. ' - eval a line or selection')
     end)
 
     it('toggles help message - off', function()
@@ -160,7 +158,7 @@ describe('lua-console.nvim - mappings', function()
 
       h.send_keys(config.mappings.eval)
       vim.api.nvim_win_set_cursor(win, { 13, 20 })
-      h.send_keys('gf')
+      h.send_keys(config.mappings.open)
 
       local new_buf = vim.fn.bufnr()
       assert.has_string(vim.fn.bufname(new_buf), 'nvim/runtime/lua/vim/lsp.lua')
@@ -179,7 +177,7 @@ describe('lua-console.nvim - mappings', function()
       result = h.get_buffer(buf)
 
       vim.api.nvim_win_set_cursor(win, { 7, 0 })
-      h.send_keys('gf')
+      h.send_keys(config.mappings.open)
 
       local new_buf = vim.fn.bufnr()
       local path = vim.fn.expand('$VIMRUNTIME') .. '/lua/vim/lsp/diagnostic.lua'
@@ -194,14 +192,14 @@ describe('lua-console.nvim - mappings', function()
 
       win = vim.fn.winbufnr(buf)
       assert.are_same(win, -1)
-      assert.is_false(Lua_console.win)
+      assert.is_false(_G.Lua_console.win)
     end)
 
     it('sets autocommand to remember height on win close', function()
       result = vim.api.nvim_win_get_height(win)
       vim.cmd('ene')
 
-      assert.are_same(result, Lua_console.height)
+      assert.are_same(result, _G.Lua_console.height)
     end)
   end)
 
@@ -240,7 +238,7 @@ describe('lua-console.nvim - mappings', function()
       result = h.get_buffer(other_buf)
 
       vim.fn.cursor(7, 0)
-      h.send_keys('gf')
+      h.send_keys(config.mappings.open)
 
       local new_buf = vim.fn.bufnr()
       local path = vim.fn.expand('$VIMRUNTIME') .. '/lua/vim/lsp/diagnostic.lua'

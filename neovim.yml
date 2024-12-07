@@ -10,6 +10,8 @@ globals:
     any: true
   it:
     any: true
+  pending:
+    any: true
   assert:
     any: true
   before_each:
