@@ -5,6 +5,11 @@ _G.LOG = require('log')
 
 local M = {}
 
+--Remove tabs and spaces as tabs
+string.clean = function(str)
+  return vim.trim(str:gsub('\t', '')) --:gsub('%s%s+', '')
+end
+
 M.get_root = function()
   local path = debug.getinfo(1, "S").source:sub(2)
   return vim.fs.root(path, '.git')
@@ -17,12 +22,11 @@ M.to_string = function(tbl)
   if type(tbl) == 'string' then
     tbl = { tbl }
   end
-  return vim.trim(table.concat(tbl, '\n'):gsub('\t', ''))
+  return table.concat(tbl, '\n'):clean()
 end
 
 M.to_table = function(str)
-  str = vim.trim(str:gsub('\t', ''))
-  return vim.split(str or '', '\n', { trimempty = true })
+  return vim.split(str:clean() or '', '\n', { trimempty = true })
 end
 
 M.get_buffer = function(buf)
@@ -139,19 +143,18 @@ assert:add_formatter(assert_arg_formatter)
 M.has_string = function(state, args)
   vim.validate {
     arg_1 = { args[1], { 'string', 'table' } },
-    arg_2 = { args[2], 'string' },
+    arg_2 = { args[2], { 'string', 'table' } },
   }
 
   local mod = state.mod
   local o, pattern = args[1], args[2]
   local result
 
-  if type(o) == 'table' then
-    o = M.to_string(o)
-  end
+  if type(o) == 'table' then o = M.to_string(o) end
+  if type(pattern) == 'table' then pattern = M.to_string(pattern) end
 
-  o = vim.trim(o:gsub('\t', ''))
-  pattern = vim.trim(pattern:gsub('\t', ''))
+  o = vim.trim(o:clean())
+  pattern = vim.trim(pattern:clean())
 
   result = o:find(pattern, 1, true) and true or false
 

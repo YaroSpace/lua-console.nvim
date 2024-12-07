@@ -30,12 +30,12 @@ local external_evaluators = {
     cmd = { 'ruby', '-e' },
     env = { RUBY_VERSION = '3.3.0' },
     code_prefix = '$stdout.sync = true;',
-    formatter = generic_formatter
+    formatter = generic_formatter,
   },
 
   racket = {
     cmd = { 'racket', '-e' },
-    formatter = generic_formatter
+    formatter = generic_formatter,
   },
 }
 

@@ -1,4 +1,4 @@
-local assert = require("luassert.assert")
+local assert = require('luassert.assert')
 local h = require('spec_helper')
 
 describe('lua-console.utils', function()
@@ -376,7 +376,7 @@ describe('lua-console.utils', function()
 
         expected = config.buffer.result_prefix .. 'nil'
 
-       result = h.get_virtual_text(buf, 2, 2)
+        result = h.get_virtual_text(buf, 2, 2)
         assert.has_string(result, expected)
       end)
 

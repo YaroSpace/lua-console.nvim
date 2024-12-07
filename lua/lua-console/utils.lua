@@ -289,15 +289,14 @@ local function process_external_result(buf, ret, lang_config)
   if #ret == 0 then return end
 
   local formatter = lang_config.formatter
-
   if formatter then ret = formatter(ret) end
 
   append_current_buffer(buf, ret)
 end
 
----Returns default handler for external evaluator process output
+---Returns default handler for processing external evaluator's output
 ---@param buf number
----@param std string 'out|err'
+---@param _ string 'out|err'
 ---@param lang_config table
 ---@return function function(err, result)
 local function default_handler(buf, _, lang_config)
