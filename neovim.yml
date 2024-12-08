@@ -14,6 +14,8 @@ globals:
     any: true
   assert:
     any: true
+  setup:
+    any: true
   before_each:
     any: true
   after_each:

@@ -343,12 +343,32 @@ local get_external_evaluator = function(buf, lang)
   end
 end
 
-local get_evaluator = function(buf, lines)
-  local evaluator
-  local lang = lines[1]:match('^' .. config.external_evaluators.lang_prefix .. '(.+)')
+---Determines the language of the code/console/buffer
+---mutates lines array to remove the lang_prefix
+---@param buf number
+---@param lines string[]
+---@return string
+local function get_lang(buf, lines)
+  local pattern = '^[%s%c]*' .. config.external_evaluators.lang_prefix .. '(.-)[%c%s]*$'
+  local line, lang
 
-  if lang then table.remove(lines, 1) end
-  lang = lang and lang or vim.bo[buf].filetype
+  line = lines[1]
+  lang = line:match(pattern)
+  if lang then
+    table.remove(lines, 1)
+    return lang
+  end
+
+  line = vim.fn.getbufline(buf, 1)[1]
+  lang = line:match(pattern)
+  if lang then return lang end
+
+  return vim.bo[buf].filetype
+end
+
+local get_evaluator = function(buf, lines)
+  local evaluator, lang
+  lang = get_lang(buf, lines)
 
   if lang == '' then
     vim.notify('Plese specify the language to evaluate or set the filetype', vim.log.levels.WARN)
@@ -364,17 +384,26 @@ local get_evaluator = function(buf, lines)
   return evaluator
 end
 
----Evaluates code in the current line or visual selection and appends to current buffer
-local eval_code_in_buffer = function(buf)
+---Evaluates code in the current line or visual selection and appends to buffer
+---@param buf number
+---@param full? boolean evaluate full buffer
+local eval_code_in_buffer = function(buf, full)
   buf = buf or vim.fn.bufnr()
+  local win = vim.fn.bufwinid(buf)
 
   if vim.api.nvim_get_mode().mode == 'V' then vim.api.nvim_input('<Esc>') end
 
-  local v_start, v_end = vim.fn.line('.'), vim.fn.line('v')
-  if v_start > v_end then
-    v_start, v_end = v_end, v_start
+  local v_start, v_end
+  if full then
+    v_start, v_end = 1, vim.api.nvim_buf_line_count(buf)
+  else
+    v_start, v_end = vim.fn.line('.', win), vim.fn.line('v', win)
+    if v_start > v_end then
+      v_start, v_end = v_end, v_start
+    end
   end
-  vim.fn.cursor(v_end, 0)
+
+  vim.api.nvim_win_set_cursor(win, { v_end, 0 })
 
   local lines = vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
   lines = remove_empty_lines(lines)

@@ -89,8 +89,17 @@ M.set_evaluator_mappings = function(buf)
 
   set_map(buf, m.eval, {
     desc = 'Eval code in current line or visual selection',
-    callback = utils.eval_code_in_buffer,
+    callback = function()
+      utils.eval_code_in_buffer(buf)
+    end,
   }, { 'n', 'v' })
+
+  set_map(buf, m.eval_buffer, {
+    desc = 'Eval code in current buffer',
+    callback = function()
+      utils.eval_code_in_buffer(buf, true)
+    end,
+  }, 'n')
 end
 
 M.set_console_autocommands = function(buf)
