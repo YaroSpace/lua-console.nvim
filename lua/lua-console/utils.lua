@@ -331,7 +331,7 @@ local get_external_evaluator = function(buf, lang)
 
   return function(lines)
     local cmd = vim.tbl_extend('force', {}, lang_config.cmd)
-    local code = (lang_config.code_prefix or '') .. ' ' .. to_string(lines)
+    local code = (lang_config.code_prefix or '') .. to_string(lines)
     table.insert(cmd, code)
 
     local status, id = pcall(vim.system, cmd, opts, opts.on_exit)
@@ -349,7 +349,7 @@ end
 ---@param lines string[]
 ---@return string
 local function get_lang(buf, lines)
-  local pattern = '^[%s%c]*' .. config.external_evaluators.lang_prefix .. '(.-)[%c%s]*$'
+  local pattern = '^.*' .. config.external_evaluators.lang_prefix .. '(.-)%s*$'
   local line, lang
 
   line = lines[1]
@@ -447,11 +447,29 @@ end
 
 ---Attaches evaluator (mappings and context) to a buffer
 ---@param buf? number buffer number, current buffer is used if omitted
-local attach = function(buf)
+local attach_toggle = function(buf)
   buf = buf or vim.fn.bufnr()
+
+  local mappings = require('lua-console.mappings')
   local name = vim.fn.bufname()
-  require('lua-console.mappings').set_evaluator_mappings(buf)
-  vim.notify(string.format('Evaluator attached to buffer [%s:%s]', name, buf), vim.log.levels.INFO)
+
+  local maps = vim.tbl_map(function(map)
+    return map.lhs
+  end, vim.api.nvim_buf_get_keymap(buf, 'n'))
+
+  local toggle
+  if not vim.tbl_contains(maps, config.mappings.eval) then
+    toggle = true
+  else
+    toggle = false
+    _G.Lua_console.ctx[buf] = nil
+  end
+
+  mappings.set_evaluator_mappings(buf, toggle)
+  vim.notify(
+    ('Evaluator %s for buffer [%s:%s]'):format(toggle and 'attached' or 'dettached', name, buf),
+    vim.log.levels.INFO
+  )
 end
 
 return {
@@ -464,5 +482,5 @@ return {
   get_plugin_path = get_plugin_path,
   load_messages = load_messages,
   get_path_lnum = get_path_lnum,
-  attach = attach,
+  attach_toggle = attach_toggle,
 }

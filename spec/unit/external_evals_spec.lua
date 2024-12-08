@@ -138,7 +138,7 @@ describe('external evaluators', function()
 
       assert.stub(vim.system).was.called_with(
         match.assert_arg(function(arg)
-          result, expected = arg, { 'ruby', '-e', '$stdout.sync = true; 5.times { puts "Hey" }' }
+          result, expected = arg, { 'ruby', '-e', '$stdout.sync = true;5.times { puts "Hey" }' }
           assert.is_same(result, expected)
         end),
         _,
@@ -162,7 +162,7 @@ describe('external evaluators', function()
 
       assert.stub(vim.system).was.called_with(
         match.assert_arg(function(arg)
-          result, expected = arg, { 'ruby_1', '-t', '-e', 'custom_prefix; 5.times { puts "Hey" }' }
+          result, expected = arg, { 'ruby_1', '-t', '-e', 'custom_prefix;5.times { puts "Hey" }' }
           assert.is_same(expected, result)
         end),
         _,

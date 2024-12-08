@@ -41,6 +41,20 @@ M.set_buffer = function(buf, lines)
   return vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 end
 
+---@param buf? number|nil -- get global maps if nil
+---@param mode? string -- default 'n'
+M.get_maps = function(buf, mode)
+  mode = mode or 'n'
+  local maps = {}
+  local list = buf and vim.api.nvim_buf_get_keymap(buf, mode) or vim.api.nvim_get_keymap(mode)
+
+  vim.tbl_map(function(map)
+    maps[map.lhs] = map.desc
+  end, list)
+
+  return maps
+end
+
 M.send_keys = function(keys)
   local cmd = "'normal " .. keys .. "'"
   vim.cmd.exe(cmd)
