@@ -30,15 +30,57 @@ describe('external evaluators', function()
   end)
 
   describe('determines correctly the language', function()
-    it('#determines evaluator based on code prefix', function()
+    it('determines evaluator based on buffer code prefix', function()
       vim.bo[buf].filetype = ''
       content = h.to_table([[
+          &&&ruby
+
+          Some code
+
+          &&&rust
+          fn main() {
+              let an_integer = 1u32;
+              let a_boolean = true;
+
+              let copied_integer = an_integer;
+              println!("An integer: {:?}", copied_integer);
+
+              let _unused_variable = 3u32;
+              let noisy_unused_variable = 2u32;
+          }
+
+          	5.times { puts "Hey" }
+			  ]])
+
+      h.set_buffer(buf, content)
+
+      h.send_keys('17gg')
+      h.send_keys('Vj')
+      utils.eval_code_in_buffer()
+
+      assert.stub(vim.system).was.called_with(
+        match.assert_arg(function(arg)
+          result, expected = arg[1], 'ruby'
+          assert.is_same(result, expected)
+        end),
+        _,
+        _
+      )
+    end)
+
+    it('determines evaluator based on local code prefix', function()
+      vim.bo[buf].filetype = ''
+      content = h.to_table([[
+          &&&racket
+          (displayln '(list))
+
           &&&ruby
           	5.times { puts "Hey" }
 			  ]])
 
       h.set_buffer(buf, content)
 
+      h.send_keys('4gg')
       h.send_keys('Vj')
       utils.eval_code_in_buffer()
 
@@ -96,7 +138,7 @@ describe('external evaluators', function()
 
       assert.stub(vim.system).was.called_with(
         match.assert_arg(function(arg)
-          result, expected = arg, { 'ruby', '-e', '$stdout.sync = true; 5.times { puts "Hey" }' }
+          result, expected = arg, { 'ruby', '-e', '$stdout.sync = true;5.times { puts "Hey" }' }
           assert.is_same(result, expected)
         end),
         _,
@@ -120,7 +162,7 @@ describe('external evaluators', function()
 
       assert.stub(vim.system).was.called_with(
         match.assert_arg(function(arg)
-          result, expected = arg, { 'ruby_1', '-t', '-e', 'custom_prefix; 5.times { puts "Hey" }' }
+          result, expected = arg, { 'ruby_1', '-t', '-e', 'custom_prefix;5.times { puts "Hey" }' }
           assert.is_same(expected, result)
         end),
         _,

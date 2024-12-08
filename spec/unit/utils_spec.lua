@@ -362,6 +362,47 @@ describe('lua-console.utils', function()
         assert.has_string(result, expected)
       end)
 
+      it('whole buffer', function()
+        content = h.to_table([[
+					map = {a=1, b=2}
+					a = 10
+
+					for i=1, 5 do
+						print(i)
+						a = a + i * 5
+					end
+
+					return a
+  			]])
+
+        h.set_buffer(buf, content)
+        vim.api.nvim_win_set_cursor(win, { 5, 0 })
+
+        utils.eval_code_in_buffer(buf, true)
+
+        expected = h.to_string([[
+					map = {a=1, b=2}
+					a = 10
+					
+					for i=1, 5 do
+					print(i)
+					a = a + i * 5
+					end
+					
+					return a
+					
+					=> 1
+					2
+					3
+					4
+					5
+					85
+  			]])
+
+        result = h.get_buffer(buf)
+        assert.has_string(result, expected)
+      end)
+
       it('shows nil as virtual text', function()
         vim.api.nvim_win_set_cursor(win, { 1, 0 })
         h.send_keys('V2j')

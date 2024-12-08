@@ -1,7 +1,8 @@
 local M = {}
 
-local utils = require('lua-console.utils')
+local console = require('lua-console')
 local config = require('lua-console.config')
+local utils = require('lua-console.utils')
 
 local function set_map(buf, map, opts, mode)
   if not map then return end
@@ -9,6 +10,34 @@ local function set_map(buf, map, opts, mode)
   opts.buffer = buf
 
   vim.keymap.set(mode, map, '', opts)
+end
+
+M.set_global_mappings = function()
+  local m = config.mappings
+
+  set_map(nil, m.toggle, {
+    callback = console.toggle_console,
+    desc = 'Toggle Lua console',
+  })
+
+  set_map(nil, m.attach, {
+    callback = function()
+      utils.attach_toggle()
+    end,
+    desc = 'Attach Lua console to buffer',
+  })
+end
+
+M.set_console_commands = function()
+  local function complete()
+    return { 'AttachToggle' }
+  end
+
+  vim.api.nvim_create_user_command('LuaConsole', function(data)
+    local command = data.args
+
+    if command == 'AttachToggle' then utils.attach_toggle() end
+  end, { nargs = 1, force = true, desc = 'Lua console commands', complete = complete })
 end
 
 M.set_console_mappings = function(buf)
@@ -68,8 +97,16 @@ M.set_console_mappings = function(buf)
   })
 end
 
-M.set_evaluator_mappings = function(buf)
+M.set_evaluator_mappings = function(buf, toggle)
   local m = config.mappings
+
+  if not toggle then
+    vim.keymap.del('n', m.eval, { buffer = buf })
+    vim.keymap.del('n', m.eval_buffer, { buffer = buf })
+    vim.keymap.del('n', m.open, { buffer = buf })
+
+    return
+  end
 
   set_map(buf, m.open, {
     desc = 'Opens file in vertical split',
@@ -89,8 +126,17 @@ M.set_evaluator_mappings = function(buf)
 
   set_map(buf, m.eval, {
     desc = 'Eval code in current line or visual selection',
-    callback = utils.eval_code_in_buffer,
+    callback = function()
+      utils.eval_code_in_buffer(buf)
+    end,
   }, { 'n', 'v' })
+
+  set_map(buf, m.eval_buffer, {
+    desc = 'Eval code in current buffer',
+    callback = function()
+      utils.eval_code_in_buffer(buf, true)
+    end,
+  }, 'n')
 end
 
 M.set_console_autocommands = function(buf)

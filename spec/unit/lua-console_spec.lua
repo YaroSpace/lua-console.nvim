@@ -30,6 +30,7 @@ describe('lua-console.nvim', function()
         },
         mappings = {
           toggle = '!#',
+          attach = '!`',
           eval = '$#',
         },
       }
@@ -41,12 +42,13 @@ describe('lua-console.nvim', function()
     end)
 
     it('sets a mapping for toggling the console', function()
-      local set_maps = {}
-      vim.tbl_map(function(x)
-        set_maps[x.lhs] = x.desc
-      end, vim.api.nvim_get_keymap('n'))
+      local maps = h.get_maps(buf)
+      assert.is.not_nil(maps['!#'])
+    end)
 
-      assert.is.not_nil(set_maps['!#'])
+    it('sets a mapping for attaching to buffer', function()
+      local maps = h.get_maps(buf)
+      assert.is.not_nil(maps['!`'])
     end)
 
     describe('lua-console - open/close window', function()
@@ -104,14 +106,12 @@ describe('lua-console.nvim', function()
       it('sets default key mappings for the buffer', function()
         local mappings = config.mappings
         mappings.toggle = nil
+        mappings.attach = nil
 
-        local set_maps = {}
-        vim.tbl_map(function(x)
-          set_maps[x.lhs] = x.desc
-        end, vim.api.nvim_buf_get_keymap(buf, 'n'))
+        local maps = h.get_maps(buf)
 
-        for _, map in pairs(mappings) do
-          assert.is.not_nil(set_maps[map], 'Mapping not found: ' .. map)
+        for key, map in pairs(mappings) do
+          assert.is.not_nil(maps[map], 'Mapping not found for: ' .. key)
         end
       end)
 
@@ -136,13 +136,10 @@ describe('lua-console.nvim', function()
         console.toggle_console()
         buf = vim.fn.bufnr('lua-console')
 
-        local set_maps = {}
-        vim.tbl_map(function(x)
-          set_maps[x.lhs] = x.desc
-        end, vim.api.nvim_buf_get_keymap(buf, 'n'))
+        local maps = h.get_maps(buf)
 
         for _, map in pairs(mappings.mappings) do
-          assert.is.not_nil(set_maps[map], 'Mapping not found: ' .. map)
+          assert.is.not_nil(maps[map], 'Mapping not found: ' .. map)
         end
       end)
 

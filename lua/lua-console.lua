@@ -23,7 +23,7 @@ local get_or_create_buffer = function()
   vim.diagnostic.enable(false, { bufnr = buf })
 
   mappings.set_console_mappings(buf)
-  mappings.set_evaluator_mappings(buf)
+  mappings.set_evaluator_mappings(buf, true)
   mappings.set_console_autocommands(buf)
 
   if config.buffer.load_on_start then utils.load_saved_console(buf) end
@@ -78,10 +78,8 @@ local setup = function(opts)
   mappings = require('lua-console.mappings')
   utils = require('lua-console.utils')
 
-  vim.keymap.set('n', config.mappings.toggle, '', {
-    callback = toggle_console,
-    desc = 'Toggle Lua console',
-  })
+  mappings.set_global_mappings()
+  mappings.set_console_commands()
 
   return config
 end

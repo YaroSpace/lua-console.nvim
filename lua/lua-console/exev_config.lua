@@ -2,8 +2,9 @@
 ---@param result string[]
 ---@return string[]
 local function generic_formatter(result)
-  local sep_start = ('='):rep(vim.o.columns)
-  local sep_end = ('='):rep(vim.o.columns)
+  local width = vim.o.columns
+  local sep_start = ('='):rep(width)
+  local sep_end = ('='):rep(width)
 
   table.insert(result, 1, sep_start)
   table.insert(result, sep_end)
@@ -35,6 +36,11 @@ local external_evaluators = {
 
   racket = {
     cmd = { 'racket', '-e' },
+    formatter = generic_formatter,
+  },
+
+  python = {
+    cmd = { 'python3', '-c' },
     formatter = generic_formatter,
   },
 }

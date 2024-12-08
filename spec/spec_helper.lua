@@ -41,6 +41,20 @@ M.set_buffer = function(buf, lines)
   return vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 end
 
+---@param buf? number|nil -- get global maps if nil
+---@param mode? string -- default 'n'
+M.get_maps = function(buf, mode)
+  mode = mode or 'n'
+  local maps = {}
+  local list = buf and vim.api.nvim_buf_get_keymap(buf, mode) or vim.api.nvim_get_keymap(mode)
+
+  vim.tbl_map(function(map)
+    maps[map.lhs] = map.desc
+  end, list)
+
+  return maps
+end
+
 M.send_keys = function(keys)
   local cmd = "'normal " .. keys .. "'"
   vim.cmd.exe(cmd)
@@ -134,6 +148,21 @@ end
 assert:register('matcher', 'assert_arg', assert_arg)
 assert:add_formatter(assert_arg_formatter)
 
+local function compare_strings(str_1, str_2)
+  local char_1, char_2, pos
+  for i = 1, #str_1 do
+    pos, char_1, char_2 = i, str_1:sub(i, i), str_2:sub(i, i)
+    if char_1 ~= char_2 then break end
+  end
+
+  pos = pos + 1
+
+  local sub_1 = str_1:sub(pos - 5, pos - 1) .. '<< ' .. str_1:sub(pos, pos) .. ' >>' .. str_1:sub(pos + 1, pos + 5)
+  local sub_2 = str_2:sub(pos - 5, pos - 1) .. '<< ' .. str_2:sub(pos, pos) .. ' >>' .. str_2:sub(pos + 1, pos + 5)
+
+  return ('Mismatch in pos %s\n%s\n\n%s'):format(pos, sub_1, sub_2)
+end
+
 ---Asserts if object contains a string
 ---@param state table
 ---@param args table { table|string, string }
@@ -151,14 +180,16 @@ M.has_string = function(state, args)
   if type(o) == 'table' then o = M.to_string(o) end
   if type(pattern) == 'table' then pattern = M.to_string(pattern) end
 
-  o = vim.trim(o:clean())
-  pattern = vim.trim(pattern:clean())
+  o = o:clean()
+  pattern = pattern:clean()
 
   result = o:find(pattern, 1, true) and true or false
 
   if not (mod and result) then
     local _not = mod and '' or ' not '
-    state.failure_message = string.format('\n\n**Expected "%s"\n\n**%sto have string "%s"', o, _not, pattern)
+    local mismatch = compare_strings(o, pattern)
+    state.failure_message =
+      string.format('\n\n**Expected "%s"\n\n**%sto have string "%s\n\n%s"', o, _not, pattern, mismatch)
   end
 
   return result

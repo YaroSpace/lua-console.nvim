@@ -9,6 +9,7 @@ describe('lua-console.nvim - mappings', function()
   before_each(function()
     mappings = {
       toggle = '&&',
+      attach = '@@',
       quit = 'qq',
       eval = '$$',
       open = 'ff',
@@ -50,6 +51,55 @@ describe('lua-console.nvim - mappings', function()
   after_each(function()
     require('lua-console').deactivate()
     buf, win = nil, nil
+  end)
+
+  describe('sets global mappings', function()
+    it('toggles console - on', function()
+      h.delete_buffer(buf)
+      h.send_keys(mappings.toggle)
+      buf = vim.fn.bufnr('lua-console')
+
+      assert.is_same(_G.Lua_console.buf, buf)
+    end)
+
+    it('toggles console - off', function()
+      h.send_keys(mappings.toggle)
+      assert.is_same(_G.Lua_console.win, false)
+    end)
+
+    it('attaches to buffer', function()
+      buf = vim.api.nvim_create_buf(true, true)
+      vim.api.nvim_set_current_buf(buf)
+      h.send_keys(mappings.attach)
+
+      local maps = h.get_maps(buf)
+
+      assert.is.not_nil(maps[mappings.eval])
+      assert.is.not_nil(maps[mappings.eval_buffer])
+      assert.is.not_nil(maps[mappings.open])
+    end)
+
+    it('LuaConsole toggle command attaches to buffer', function()
+      buf = vim.api.nvim_create_buf(true, true)
+      vim.api.nvim_set_current_buf(buf)
+      vim.cmd('LuaConsole AttachToggle')
+
+      local maps = h.get_maps(buf)
+
+      assert.is.not_nil(maps[mappings.eval])
+    end)
+
+    it('LuaConsole toggle command dettaches', function()
+      buf = vim.api.nvim_create_buf(true, true)
+      vim.api.nvim_set_current_buf(buf)
+
+      vim.cmd('LuaConsole AttachToggle')
+      vim.cmd('LuaConsole AttachToggle')
+
+      local maps = h.get_maps(buf)
+
+      assert.is_nil(maps[mappings.eval])
+    end)
   end)
 
   describe('lua-console.nvim - mappings', function()
@@ -211,7 +261,11 @@ describe('lua-console.nvim - mappings', function()
       vim.api.nvim_set_current_buf(other_buf)
       vim.bo[other_buf].filetype = 'lua'
 
-      utils.attach(other_buf)
+      utils.attach_toggle(other_buf)
+    end)
+
+    it('cretes mappings for attached buffer', function()
+      -- code
     end)
 
     it('evaluates code', function()
@@ -268,6 +322,14 @@ describe('lua-console.nvim - mappings', function()
       result = h.get_buffer(other_buf)
 
       assert.has_string(result[#result], '10')
+    end)
+
+    it('dettaches if already attached', function()
+      -- code
+    end)
+
+    it('removes mappings for dettached buffer', function()
+      -- code
     end)
   end)
 end)

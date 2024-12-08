@@ -4,9 +4,9 @@ local default_config = {
   buffer = {
     result_prefix = '=> ',
     save_path = vim.fn.stdpath('state') .. '/lua-console.lua',
-    autosave = true,
+    autosave = true, -- autosave on console hide / close
     load_on_start = true, -- load saved session on start
-    preserve_context = true,
+    preserve_context = true, -- preserve results between evaluations
   },
   window = {
     relative = 'editor',
@@ -20,8 +20,10 @@ local default_config = {
   },
   mappings = {
     toggle = '`',
+    attach = '<Leader>`',
     quit = 'q',
     eval = '<CR>',
+    eval_buffer = '<S-CR>',
     open = 'gf',
     messages = 'M',
     save = 'S',

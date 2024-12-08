@@ -9,7 +9,7 @@ watch = '*.lua'
 
 .PHONY: api_documentation luacheck stylua test
 
-all: test luacheck
+all: test luacheck stylua
 
 api_documentation:
 	nvim -u scripts/make_api_documentation/init.lua -l scripts/make_api_documentation/main.lua
