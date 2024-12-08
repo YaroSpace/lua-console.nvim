@@ -1,50 +1,54 @@
+local assert = require('luassert.assert')
 local h = require('spec_helper')
 
 describe('lua-console.nvim', function()
-  local buf, win
+  local buf, win, lc
   local console, config
   local expected, result
 
   before_each(function()
+    local path = vim.fn.stdpath('state') .. '/lua-console-test.lua'
+
     console = require('lua-console')
-    config = require('lua-console').setup()
+    config = console.setup { buffer = { save_path = path } }
+    lc = _G.Lua_console
   end)
 
   after_each(function()
     require('lua-console').deactivate()
-		buf, win = nil, nil
+    buf, win = nil, nil
   end)
 
   describe('lua-console.nvim - setup', function()
     it('sets up with custom config', function()
       config = {
         buffer = {
-          prepend_result_with = '$$ ',
+          result_prefix = '$$ ',
         },
         window = {
           border = 'single',
         },
         mappings = {
-          toggle = '!',
-          eval = 'GG',
+          toggle = '!#',
+          attach = '!`',
+          eval = '$#',
         },
       }
 
       console.setup(config)
       result = require('lua-console.config')
 
-      console.toggle_console()
-
       assert.has_properties(result, config)
-      assert.has_no.errors(function()
-        vim.keymap.del('n', config.mappings.eval, { buffer = Lua_console.buf })
-      end)
     end)
 
     it('sets a mapping for toggling the console', function()
-      assert.has_no.errors(function()
-        vim.keymap.del('n', config.mappings.toggle)
-      end)
+      local maps = h.get_maps(buf)
+      assert.is.not_nil(maps['!#'])
+    end)
+
+    it('sets a mapping for attaching to buffer', function()
+      local maps = h.get_maps(buf)
+      assert.is.not_nil(maps['!`'])
     end)
 
     describe('lua-console - open/close window', function()
@@ -54,17 +58,14 @@ describe('lua-console.nvim', function()
         win = vim.fn.bufwinid(buf)
       end)
 
-      after_each(function()
-        buf = nil
-        win = nil
-      end)
+      after_each(function() end)
 
       it('opens console if it is closed', function()
         assert.are_not.same(buf, -1)
-        assert.are_same(Lua_console.buf, buf)
+        assert.are_same(lc.buf, buf)
 
         assert.are_not.same(win, -1)
-        assert.are_same(Lua_console.win, win)
+        assert.are_same(lc.win, win)
       end)
 
       it('closes console window if it is open', function()
@@ -74,7 +75,7 @@ describe('lua-console.nvim', function()
 
         assert.are_not.same(buf, -1)
         assert.are_same(win, -1)
-        assert.is_false(Lua_console.win)
+        assert.is_false(lc.win)
       end)
 
       it('creates a buffer with correct properties', function()
@@ -89,7 +90,7 @@ describe('lua-console.nvim', function()
         assert.has_properties(result, expected)
 
         result = vim.fn.bufname(buf)
-        local path = vim.fn.expand('$XDG_PLUGIN_PATH') .. '/console'
+        local path = h.get_root() .. '/console'
         assert.are_same(result, path)
       end)
 
@@ -102,14 +103,43 @@ describe('lua-console.nvim', function()
         assert.are_not.same(buf, new_buf)
       end)
 
-      it('sets key mappings for the buffer', function()
+      it('sets default key mappings for the buffer', function()
         local mappings = config.mappings
         mappings.toggle = nil
+        mappings.attach = nil
 
-        for _, map in pairs(mappings) do
-          assert.has_no.errors(function()
-            vim.keymap.del('n', map, { buffer = buf })
-          end)
+        local maps = h.get_maps(buf)
+
+        for key, map in pairs(mappings) do
+          assert.is.not_nil(maps[map], 'Mapping not found for: ' .. key)
+        end
+      end)
+
+      it('sets custom key mappings for the buffer', function()
+        h.delete_buffer(buf)
+
+        local mappings = {
+          mappings = {
+            quit = 'qq',
+            eval = '$$',
+            open = 'ff',
+            messages = 'M',
+            save = 'S',
+            load = 'L',
+            resize_up = 'gq',
+            resize_down = 'gw',
+            help = 'g?',
+          },
+        }
+
+        console.setup(mappings)
+        console.toggle_console()
+        buf = vim.fn.bufnr('lua-console')
+
+        local maps = h.get_maps(buf)
+
+        for _, map in pairs(mappings.mappings) do
+          assert.is.not_nil(maps[map], 'Mapping not found: ' .. map)
         end
       end)
 
@@ -136,28 +166,50 @@ describe('lua-console.nvim', function()
 
       it('shows help message on start', function()
         result = h.get_virtual_text(buf, 0)
-        assert.has_string(result, config.mappings.help .. ' - help' )
+        assert.has_string(result, config.mappings.help .. ' - help')
       end)
 
-      it('it loads saved content on startup', function()
-        vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
+      describe('save/load operations', function()
+        after_each(function()
+          os.remove(config.buffer.save_path)
+        end)
 
-        local path = config.buffer.save_path
-        local file = assert(io.open(path, 'w'))
+        it('autosaves content when console window is closed', function()
+          local content = h.to_table([[ Some code ]])
+          h.set_buffer(buf, content)
 
-        local content = [[
-				for i=1, 10 do
-					a = i * 5
-				end
-			]]
-        file:write(content)
-        file:close()
+          vim.api.nvim_win_close(win, true)
+          result = vim.fn.readfile(config.buffer.save_path)
 
-        console.toggle_console()
-        buf = vim.fn.bufnr('lua-console')
+          assert.has_string(result, content)
+        end)
 
-        result = h.get_buffer(buf)
-        assert.has_string(result, content)
+        it('autosaves content when console buffer is closed', function()
+          local content = h.to_table([[ Some code other ]])
+          h.set_buffer(buf, content)
+
+          vim.api.nvim_buf_delete(buf, { force = true })
+          result = vim.fn.readfile(config.buffer.save_path)
+
+          assert.has_string(result, content)
+        end)
+
+        it('it loads saved content on startup', function()
+          vim.api.nvim_buf_delete(vim.fn.bufnr(buf), { force = true })
+
+          local content = h.to_table([[
+				    for i=1, 10 do
+					    a = i * 5
+				    end
+			    ]])
+          vim.fn.writefile(content, config.buffer.save_path)
+
+          console.toggle_console()
+          buf = vim.fn.bufnr('lua-console')
+
+          result = h.get_buffer(buf)
+          assert.has_string(result, content)
+        end)
       end)
     end)
   end)

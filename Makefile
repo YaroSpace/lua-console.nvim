@@ -1,23 +1,36 @@
-.PHONY: api_documentation llscheck luacheck stylua test
+set_lua_paths = eval $$(luarocks path --lua-version 5.1 --bin)
+busted = $$(find /usr/local/lib/luarocks/*/busted/* -name busted)
+
+test_unit = busted --run=unit
+test_nvim = nvim --headless -i NONE -n -u spec/minimal_init.lua  -l $(busted) --run=unit
+
+tag ?= wip
+watch = '*.lua'
+
+.PHONY: api_documentation luacheck stylua test
+
+all: test luacheck stylua
 
 api_documentation:
-	nvim -u scripts/make_api_documentation/minimal_init.lua -l scripts/make_api_documentation/main.lua
+	nvim -u scripts/make_api_documentation/init.lua -l scripts/make_api_documentation/main.lua
 
 llscheck:
 	llscheck --configpath .luarc.json .
 
 luacheck:
-	luacheck lua spec # plugin scripts
+	luacheck lua spec scripts
 
 stylua:
-	stylua lua plugin scripts spec
+	stylua --check lua scripts spec
 
 test:
-	eval $(luarocks path --lua-version 5.1 --bin)
-	busted -o spec/utfTerminal.lua --run unit
+	@$(set_lua_paths); $(test_unit)
 
 watch:
-	while sleep 0.1; do ls -d spec/**/*.lua | entr -d -c busted -o spec/utfTerminal.lua --run unit; done
+	@$(set_lua_paths); while sleep 0.1; do find . -name $(watch) | entr -d -c $(test_unit); done
 
-watch_current:
-	while sleep 0.1; do ls -d spec/**/*.lua | entr -d -c busted -o spec/utfTerminal.lua --run unit -t=current; done
+watch_tag:
+	@$(set_lua_paths); while sleep 0.1; do find . -name $(watch) | entr -d -c $(test_unit) --tags=$(tag); done
+
+test_nvim:
+	@$(test_nvim) spec/unit

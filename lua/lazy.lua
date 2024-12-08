@@ -1,6 +1,6 @@
 return {
-  "yarospace/lua-console.nvim",
+  'yarospace/lua-console.nvim',
   lazy = true,
-  keys = "`",
+  keys = '`',
   opts = {},
 }
