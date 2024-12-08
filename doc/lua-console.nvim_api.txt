@@ -1,21 +1,47 @@
 ==============================================================================
 ------------------------------------------------------------------------------
-                                                                *load_console()*
+                                                           *show_virtual_text()*
 
-`load_console`({on_start})
+`show_virtual_text`({buf}, {id}, {text}, {lnum}, {position}, {highlight})
+
+
+virtual text in the buffer
+Parameters ~
+    {buf} `(number)` buffer
+    {id} `(number)` namespace id
+    {text} `(string)` text to show
+    {lnum} `(number)` line number
+    {position} `(string)` virtual text position
+    {highlight} `(string)` higlight group
+
+------------------------------------------------------------------------------
+                                                          *load_saved_console()*
+
+`load_saved_console`({buf})
 
 
 saved console
 Parameters ~
-    {on_start} `(boolean)`
+    {buf} `(number)`
+
+------------------------------------------------------------------------------
+                                                              *get_assignment()*
+
+`get_assignment`({line})
+
+
+if there is an assigment on the line and returns its value
+Parameters ~
+    {line} `(string[])`
 
 ------------------------------------------------------------------------------
                                                        *append_current_buffer()*
 
-`append_current_buffer`({lines})
+`append_current_buffer`({buf}, {lines})
 
 Parameters ~
-    {lines} `(string[])` Text to append to buffer after current selection
+    {buf} `(number)`
+    {lines} `(string[])` Text to append to current buffer after current selection
 
 ------------------------------------------------------------------------------
                                                                 *pretty_print()*
@@ -23,9 +49,12 @@ Parameters ~
 `pretty_print`({...})
 
 
-prints objects
+prints objects and appends to print_buffer
 Parameters ~
     {...} `(any[])`
+
+Return ~
+`(string[])`
 
 ------------------------------------------------------------------------------
                                                             *clean_stacktrace()*
@@ -35,27 +64,85 @@ Parameters ~
 Remove the stacktrace preceeding the call from lua-console
 
 ------------------------------------------------------------------------------
-                                                                    *eval_lua()*
+                                                               *lua_evaluator()*
 
-`eval_lua`({lines})
+`lua_evaluator`({lines}, {ctx})
 
 Evaluates Lua code and returns pretty printed result with errors if any
 @param lines string[] table with lines of Lua code
+@param ctx? table environment to execute code in
 @return string[]
 
 ------------------------------------------------------------------------------
-                                                          *eval_lua_in_buffer()*
+                                                             *default_handler()*
 
-`eval_lua_in_buffer`()
+`default_handler`({buf}, {_}, {lang_config})
 
-lua in the current line or visual selections and appends to current buffer
+
+default handler for processing external evaluator's output
+Parameters ~
+    {buf} `(number)`
+    {_} `(string)` 'out|err'
+    {lang_config} `(table)`
+
+Return ~
+`(function)` function(err, result)
+
+------------------------------------------------------------------------------
+                                                      *get_external_evaluator()*
+
+`get_external_evaluator`({buf}, {lang})
+
+
+external evaluator for requested language
+Parameters ~
+    {lang} `(string)`
+
+Return ~
+`(function|nil)` evaluator function(lines:string[]):string[]
+
+------------------------------------------------------------------------------
+                                                                    *get_lang()*
+
+`get_lang`({buf}, {lines})
+
+the language of the code/console/buffer
+
+lines array to remove the lang_prefix
+Parameters ~
+    {buf} `(number)`
+    {lines} `(string[])`
+
+Return ~
+`(string)`
+
+------------------------------------------------------------------------------
+                                                         *eval_code_in_buffer()*
+
+`eval_code_in_buffer`({buf}, {full})
+
+
+code in the current line or visual selection and appends to buffer
+Parameters ~
+    {buf} `(number)`
+    {full} `(optional)` `(boolean)` evaluate full buffer
 
 ------------------------------------------------------------------------------
                                                                *load_messages()*
 
-`load_messages`()
+`load_messages`({buf})
 
 messages into console
+
+------------------------------------------------------------------------------
+                                                               *attach_toggle()*
+
+`attach_toggle`({buf})
+
+
+evaluator (mappings and context) to a buffer
+Parameters ~
+    {buf} `(optional)` `(number)` buffer number, current buffer is used if omitted
 
 WARNING: This file is auto-generated. Do not edit it!
 
