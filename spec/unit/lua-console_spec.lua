@@ -23,7 +23,7 @@ describe('lua-console.nvim', function()
     it('sets up with custom config', function()
       config = {
         buffer = {
-          result_prefix = '$$ ',
+          result_prefix = '$$ '
         },
         window = {
           border = 'single',

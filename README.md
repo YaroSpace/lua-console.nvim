@@ -52,6 +52,7 @@ config. If you want to delete a mapping - set its value to `false`.
 
 <!-- config:start -->
 `config.lua`
+
 ```lua
 opts = {
   buffer = {
@@ -163,6 +164,7 @@ There are two functions available within the console:
 
   <!-- config:start -->
   `exev_config.lua`
+
   ```lua
   ---Formats the output of external evaluator
   ---@param result string[]
@@ -217,9 +219,10 @@ There are two functions available within the console:
 - The language evaluator is determined either from (in order of precedence):
 
   - The code prefix `===lang` on the line above your code snippet, in which case it only applies to the snippet directly below and it should be included in the selection 
-  for evaluation. The prefix can be changed in the config.
+    for evaluation. The prefix can be changed in the config.
   - The code prefix on the top line of the console/buffer, in which case it applies to the whole buffer.
   - The file type of the buffer. 
+
   <br/> 
 
   ```racket

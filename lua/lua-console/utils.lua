@@ -131,7 +131,7 @@ local print_buffer = {}
 local append_current_buffer = function(buf, lines)
   if not lines or #lines == 0 then return end
 
-  local lnum = vim.fn.line('.', vim.fn.bufwinid(buf))
+  local lnum = vim.fn.line('.')
   local prefix = config.buffer.result_prefix
 
   local virtual_text
@@ -349,7 +349,7 @@ end
 ---@param lines string[]
 ---@return string
 local function get_lang(buf, lines)
-  local pattern = '^.*' .. config.external_evaluators.lang_prefix .. '(.-)%s*$'
+  local pattern = ('^.*' .. config.external_evaluators.lang_prefix .. '(.-)%s*$'):gsub('%[', '%%%[')
   local line, lang
 
   line = lines[1]

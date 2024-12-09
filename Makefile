@@ -1,5 +1,6 @@
 set_lua_paths = eval $$(luarocks path --lua-version 5.1 --bin)
 busted = $$(find /usr/local/lib/luarocks/*/busted/* -name busted)
+set_luals_path = PATH="$$PATH:/home/yaro/.local/share/nvim/mason/bin/lua-language-server"
 
 test_unit = busted --run=unit
 test_nvim = nvim --headless -i NONE -n -u spec/minimal_init.lua  -l $(busted) --run=unit
@@ -15,7 +16,7 @@ api_documentation:
 	nvim -u scripts/make_api_documentation/init.lua -l scripts/make_api_documentation/main.lua
 
 llscheck:
-	llscheck --configpath .luarc.json .
+	@$(set_luals_path) && llscheck --configpath .luarc.json .
 
 luacheck:
 	luacheck lua spec scripts
