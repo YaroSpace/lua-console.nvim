@@ -155,6 +155,7 @@ local function compare_strings(str_1, str_2)
     if char_1 ~= char_2 then break end
   end
 
+  if not pos then return '' end
   pos = pos + 1
 
   local sub_1 = str_1:sub(pos - 5, pos - 1) .. '<< ' .. str_1:sub(pos, pos) .. ' >>' .. str_1:sub(pos + 1, pos + 5)

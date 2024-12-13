@@ -80,7 +80,7 @@ describe('external evaluators', function()
 
       h.set_buffer(buf, content)
 
-      h.send_keys('4gg')
+      h.send_keys('5gg')
       h.send_keys('Vj')
       utils.eval_code_in_buffer()
 
@@ -230,6 +230,37 @@ describe('external evaluators', function()
         _
       )
     end)
+  end)
+
+  it('uses removes indentation from code', function()
+      config.setup {
+        external_evaluators = { ruby = { code_prefix = '' }, }, }
+
+      content = {
+		    '  a = [1, 3, 5, 7, 9]',
+		    '    for val in a:',
+			  '      print(val)'
+		  }
+
+      expected = {
+		    'a = [1, 3, 5, 7, 9]',
+		    '  for val in a:',
+			  '    print(val)'
+		  }
+
+    h.set_buffer(buf, content)
+
+    h.send_keys('VG')
+    utils.eval_code_in_buffer()
+
+    assert.stub(vim.system).was.called_with(
+      match.assert_arg(function(arg)
+        result = h.to_table(arg[3])
+        assert.is_same(result, expected)
+      end),
+      _,
+      _
+    )
   end)
 
   it('uses custom formatter to process results', function()

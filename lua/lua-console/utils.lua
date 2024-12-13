@@ -12,6 +12,7 @@ local to_string = function(tbl, sep, trim)
     for _, pat in ipairs(patterns) do
       line = line:gsub(pat, '')
     end
+    -- compact strings by removing redundant spaces
     line = line:gsub('(["\'])%s+', '%1'):gsub('%s+(["\'])', '%1'):gsub('%s%s+', ' ')
   end
 
@@ -20,6 +21,13 @@ end
 
 local to_table = function(str)
   return vim.split(str or '', '\n', { trimempty = true })
+end
+
+local function remove_indentation(tbl)
+  local indent = tbl[1]:match('(%s*)%w') or tbl[1]:match('(\t*)%w')
+  return vim.tbl_map(function(line)
+    return line:sub(#indent + 1)
+  end, tbl)
 end
 
 ---Shows virtual text in the buffer
@@ -60,9 +68,9 @@ local toggle_help = function(buf)
     vim.api.nvim_buf_del_extmark(buf, ns, 1)
 
     message =
-      [[%s - eval a line or selection, %s - open file, %s - load messages, %s - save console, %s - load console, %s/%s - resize window, %s - toggle help]]
+      [[%s - eval a line or selection, %s - eval buffer, %s - open file, %s - load messages, %s - save console, %s - load console, %s/%s - resize window, %s - toggle help]]
     message =
-      string.format(message, cm.eval, cm.open, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
+      string.format(message, cm.eval, cm.eval_buffer, cm.open, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
 
     local visible_line = vim.fn.line('w0')
     show_virtual_text(buf, 2, message, visible_line - 1, 'overlay', 'Comment')
@@ -331,7 +339,7 @@ local get_external_evaluator = function(buf, lang)
 
   return function(lines)
     local cmd = vim.tbl_extend('force', {}, lang_config.cmd)
-    local code = (lang_config.code_prefix or '') .. to_string(lines)
+    local code = (lang_config.code_prefix or '') .. to_string(remove_indentation(lines)) -- some languages, like python are concerned with indentation
     table.insert(cmd, code)
 
     local status, id = pcall(vim.system, cmd, opts, opts.on_exit)
@@ -346,42 +354,33 @@ end
 ---Determines the language of the code/console/buffer
 ---mutates lines array to remove the lang_prefix
 ---@param buf number
----@param lines string[]
+---@param range number[]
 ---@return string
-local function get_lang(buf, lines)
-  local pattern = ('^.*' .. config.external_evaluators.lang_prefix .. '(.-)%s*$'):gsub('%[', '%%%[')
+local function get_lang(buf, range)
+  local pattern = ('^.*' .. config.external_evaluators.lang_prefix .. '(.-)%s*$')
   local line, lang
 
-  line = lines[1]
+  line = vim.api.nvim_buf_get_lines(buf, math.max(0, range[1] - 2), range[2], false)[1]
   lang = line:match(pattern)
-  if lang then
-    table.remove(lines, 1)
-    return lang
-  end
+  if lang then return lang end
 
-  line = vim.fn.getbufline(buf, 1)[1]
+  line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
   lang = line:match(pattern)
   if lang then return lang end
 
   return vim.bo[buf].filetype
 end
 
-local get_evaluator = function(buf, lines)
-  local evaluator, lang
-  lang = get_lang(buf, lines)
+local get_evaluator = function(buf, range)
+  local lang = get_lang(buf, range)
 
   if lang == '' then
     vim.notify('Plese specify the language to evaluate or set the filetype', vim.log.levels.WARN)
-    return
-  end
-
-  if lang == 'lua' then
-    evaluator = lua_evaluator
+  elseif lang == 'lua' then
+    return lua_evaluator
   else
-    evaluator = get_external_evaluator(buf, lang)
+    return get_external_evaluator(buf, lang)
   end
-
-  return evaluator
 end
 
 ---Evaluates code in the current line or visual selection and appends to buffer
@@ -409,7 +408,7 @@ local eval_code_in_buffer = function(buf, full)
   lines = remove_empty_lines(lines)
   if #lines == 0 then return end
 
-  local evaluator = get_evaluator(buf, lines)
+  local evaluator = get_evaluator(buf, { v_start, v_end })
   if not evaluator then return end
 
   local result = evaluator(lines)
