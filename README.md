@@ -3,7 +3,8 @@
 **lua-console.nvim** - is a handy scratch pad / REPL / debug console for Lua development and Neovim exploration and configuration.  
 Acts as a user friendly replacement of command mode - messages loop and as a handy scratch pad to store and test your code gists.
 
-***Update: Although it originated as a tool for Lua development, it has now evolved into supporting other languages too. See [`evaluating other languages`](#evaluating-other-languages).***
+
+***Update: although it originated as a tool for Lua development, it has now evolved into supporting other languages too. See [`evaluating other languages`](#evaluating-other-languages).***
 
 <br/><img src="doc/demo.gif">
 
@@ -52,6 +53,7 @@ config. If you want to delete a mapping - set its value to `false`.
 
 <!-- config:start -->
 `config.lua`
+
 ```lua
 opts = {
   buffer = {
@@ -139,10 +141,10 @@ There are two functions available within the console:
 
 #### Setting up
 
-- It is possible to setup external code executors for other languages.  Evaluators for `ruby` and `racket` are working out of the box, support for other languages is coming. 
+- It is possible to setup external code executors for other languages.  Evaluators for `ruby`,`racket` and `python` are working out of the box, support for other languages is coming. 
   Meanwhile, you can easily setup your own language.  
-- Below is the default configuration which can be overridden or extended by your custom config (`default_process_opts` will be 
-  replaced by language specific opts), e.g. a possible config for `python` could be:
+- Below is the default configuration, which can be overridden or extended by your custom config, where `default_process_opts` will be 
+  replaced by language specific opts, e.g. a possible config for `python` could be:
 
   ```lua
   require('lua-console').setup { 
@@ -157,12 +159,11 @@ There are two functions available within the console:
   }
   ```
 
-- You can also setup a custom formatter to format the evaluator output before appending results to the console or buffer. Example is in the config.
-
   <details><summary>Default External Evaluators Settings</summary>
 
   <!-- config:start -->
   `exev_config.lua`
+
   ```lua
   ---Formats the output of external evaluator
   ---@param result string[]
@@ -209,22 +210,23 @@ There are two functions available within the console:
   return external_evaluators
   ```
   <!-- config:end -->
-
   </details>
+
+- You can also setup a custom formatter to format the evaluator output before appending results to the console or buffer. Example is in the config.
+
 
   #### Usage
 
 - The language evaluator is determined either from (in order of precedence):
 
-  - The code prefix `===lang` on the line above your code snippet, in which case it only applies to the snippet directly below and it should be included in the selection 
-  for evaluation. The prefix can be changed in the config.
+  - The code prefix `===lang` on the line above your code snippet, in which case it only applies to the snippet directly below. The prefix can be changed in the config.
   - The code prefix on the top line of the console/buffer, in which case it applies to the whole buffer.
   - The file type of the buffer. 
+
   <br/> 
 
   ```racket
   ===racket
-
 
     (define (log str)
       (displayln (format "~v" str)))
@@ -241,6 +243,18 @@ There are two functions available within the console:
   ```ruby
   ===ruby
     5.times { puts 'Hey' }
+  ```
+
+- Code inside Lua comments will be sytax highlighted.
+
+
+  ```python
+  [[===python
+	  list = [1, 3, 5, 7, 9]
+
+	  for val in a:
+		  print(list)
+  ]]
   ```
 
 ## Alternatives and comparison

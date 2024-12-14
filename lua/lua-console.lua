@@ -1,4 +1,4 @@
-local config, mappings, utils
+local config, mappings, utils, injections
 
 local get_or_create_buffer = function()
   --- @type number
@@ -19,6 +19,7 @@ local get_or_create_buffer = function()
 
   vim.api.nvim_buf_set_name(buf, buf_name) -- the name is only needed so the buffer is picked up by Lsp with correct root
 
+  injections.set_highlighting()
   vim.api.nvim_set_option_value('filetype', 'lua', { buf = buf })
   vim.diagnostic.enable(false, { bufnr = buf })
 
@@ -77,6 +78,7 @@ local setup = function(opts)
   config = require('lua-console.config').setup(opts)
   mappings = require('lua-console.mappings')
   utils = require('lua-console.utils')
+  injections = require('lua-console.injections')
 
   mappings.set_global_mappings()
   mappings.set_console_commands()
