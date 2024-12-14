@@ -104,14 +104,14 @@ Return ~
 ------------------------------------------------------------------------------
                                                                     *get_lang()*
 
-`get_lang`({buf}, {lines})
+`get_lang`({buf}, {range})
 
 the language of the code/console/buffer
 
 lines array to remove the lang_prefix
 Parameters ~
     {buf} `(number)`
-    {lines} `(string[])`
+    {range} `(number[])`
 
 Return ~
 `(string)`
