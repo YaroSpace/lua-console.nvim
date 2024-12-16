@@ -181,7 +181,7 @@ local pretty_print = function(...)
   result = to_table(result)
   vim.list_extend(print_buffer, result)
 
-  return result
+  -- return result
 end
 
 local function remove_empty_lines(tbl)
