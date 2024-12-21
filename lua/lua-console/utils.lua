@@ -19,8 +19,14 @@ local to_string = function(tbl, sep, trim)
   return line
 end
 
-local to_table = function(str)
-  return vim.split(str or '', '\n', { trimempty = true })
+---@param obj string|string[]
+---@return string[]
+local to_table = function(obj)
+  obj = type(obj) == 'string' and { obj } or obj
+
+  return vim.iter(obj):map(function(line)
+    return vim.split(line or '', '\n', { trimempty = true })
+  end):flatten():totable()
 end
 
 local function remove_indentation(tbl)
@@ -141,11 +147,14 @@ local append_current_buffer = function(buf, lines)
 
   local lnum = vim.fn.line('.')
   local prefix = config.buffer.result_prefix
+  local empty_results = { 'nil', '', '""', "''" }
 
   local virtual_text
-  if lines[#lines] == 'nil' then
+  local line = lines[#lines]
+
+  if vim.tbl_contains(empty_results, line) then
     table.remove(lines)
-    virtual_text = 'nil'
+    virtual_text = line
   end
 
   local assignment_value = get_assignment(vim.fn.getbufline(buf, lnum, lnum))
@@ -424,14 +433,16 @@ local load_messages = function(buf)
   ---This way we catch the output of messages command, in case it was overriden by some other plugin, like Noice
   vim.ui_attach(ns, { ext_messages = true }, function(event, entries) ---@diagnostic disable-line
     if event ~= 'msg_history_show' then return end
+
     local messages = vim.tbl_map(function(e)
       return e[2][1][2]
     end, entries)
+
     if #messages == 0 then return end
 
     vim.schedule(function()
-      append_current_buffer(buf, messages)
       vim.api.nvim_input('<Down>') -- forcing to redraw buffer
+      append_current_buffer(buf, to_table(messages))
     end)
   end)
 
