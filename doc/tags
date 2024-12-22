@@ -12,3 +12,4 @@ lua-console.nvim-table-of-contents	lua-console.nvim.txt	/*lua-console.nvim-table
 lua_evaluator()	lua-console.nvim_api.txt	/*lua_evaluator()*
 pretty_print()	lua-console.nvim_api.txt	/*pretty_print()*
 show_virtual_text()	lua-console.nvim_api.txt	/*show_virtual_text()*
+to_table()	lua-console.nvim_api.txt	/*to_table()*
