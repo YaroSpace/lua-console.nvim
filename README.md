@@ -4,9 +4,9 @@
 Acts as a user friendly replacement of command mode - messages loop and as a handy scratch pad to store and test your code gists.
 
 
-***Update: although it originated as a tool for Lua development, it has now evolved into supporting other languages too. See [`evaluating other languages`](#evaluating-other-languages).***
+**Update:** although it originated as a tool for Lua development, it has now evolved into supporting other languages too. See [`evaluating other languages`](#evaluating-other-languages).
 
-<br/><img src="doc/demo.gif">
+<br/><img src="https://github.com/YaroSpace/assets/blob/main/lua-console.nvim/demo.gif">
 
 ## 💡 Motivation
 

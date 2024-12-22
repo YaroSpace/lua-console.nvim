@@ -21,6 +21,8 @@ local get_or_create_buffer = function()
 
   injections.set_highlighting()
   vim.api.nvim_set_option_value('filetype', 'lua', { buf = buf })
+  vim.api.nvim_set_option_value('syntax', 'lua', { buf = buf })
+
   vim.diagnostic.enable(false, { bufnr = buf })
 
   mappings.set_console_mappings(buf)
