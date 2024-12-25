@@ -476,6 +476,8 @@ local attach_toggle = function(buf)
   end
 
   mappings.set_evaluator_mappings(buf, toggle)
+  vim.api.nvim_set_option_value('syntax', 'on', { buf = buf })
+
   vim.notify(
     ('Evaluator %s for buffer [%s:%s]'):format(toggle and 'attached' or 'dettached', name, buf),
     vim.log.levels.INFO
