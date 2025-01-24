@@ -403,6 +403,44 @@ describe('lua-console.utils', function()
         assert.has_string(result, expected)
       end)
 
+      it('multiline expressions', function()
+        vim.api.nvim_win_set_cursor(win, { 1, 0 })
+        h.send_keys('V2j')
+
+        content = h.to_table([[
+          vim.iter({ 1, 2, 3, 4, 5 }):map(function(e)
+            return e
+          end):totable()
+  				]])
+
+        h.set_buffer(buf, content)
+        utils.eval_code_in_buffer()
+
+        expected = config.buffer.result_prefix .. '{ 1, 2, 3, 4, 5 }'
+
+        result = h.get_buffer(buf)
+        assert.has_string(result, expected)
+      end)
+
+      it('multiline statements', function()
+        vim.api.nvim_win_set_cursor(win, { 1, 0 })
+        h.send_keys('V2j')
+
+        content = h.to_table([[
+          ret = vim.iter({ 1, 2, 3, 4, 5 }):map(function(e)
+            return e
+          end):totable()
+  				]])
+
+        h.set_buffer(buf, content)
+        utils.eval_code_in_buffer()
+
+        expected = config.buffer.result_prefix .. '{ 1, 2, 3, 4, 5 }'
+
+        result = h.get_virtual_text(buf, 0, 0)
+        assert.has_string(result, expected)
+      end)
+
       it('shows nil as virtual text', function()
         vim.api.nvim_win_set_cursor(win, { 1, 0 })
         h.send_keys('V2j')

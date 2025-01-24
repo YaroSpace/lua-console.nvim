@@ -5,6 +5,8 @@ local to_string = function(tbl, sep, trim)
   tbl = tbl or {}
   sep = sep or '\n'
 
+  if type(tbl) ~= 'table' then tbl = { tbl } end
+
   local line = table.concat(tbl, sep)
   local patterns = { '\\r', '\\t', '\\n' }
 
@@ -227,11 +229,11 @@ local function clean_stacktrace(error)
   return lines
 end
 
-local function add_return(tbl)
-  if vim.fn.trim(tbl[#tbl]) == 'end' then return tbl end
+local function add_return(tbl, lnum)
+  if to_string(tbl[lnum], '', true):match('^%s*end') then return tbl end
 
   local ret = vim.deepcopy(tbl)
-  ret[#ret] = 'return ' .. ret[#ret]
+  ret[lnum] = 'return ' .. ret[lnum]
 
   return ret
 end
@@ -271,10 +273,17 @@ end
 function lua_evaluator(lines, ctx)
   vim.validate { lines = { lines, 'table' } }
 
-  local lines_with_return = add_return(lines)
   local env = ctx or get_ctx()
+  env._reset_last_assignment()
 
-  if not select(2, load(to_string(lines_with_return), '', 't', env)) then lines = lines_with_return end
+  local lines_with_return_first_line = add_return(lines, 1)
+  local lines_with_return_last_line = add_return(lines, #lines)
+
+  if not select(2, load(to_string(lines_with_return_first_line), '', 't', env)) then
+      lines = lines_with_return_first_line
+  elseif not select(2, load(to_string(lines_with_return_last_line), '', 't', env)) then
+    lines = lines_with_return_last_line
+  end
 
   local code, error = load(to_string(lines), 'Lua console: ', 't', env)
   if error then return to_table(error) end
@@ -289,9 +298,9 @@ function lua_evaluator(lines, ctx)
     table.remove(result, 1)
 
     if #result > 0 then
-      pretty_print(unpack(result))
+      print_to_buffer(unpack(result))
     else
-      pretty_print(nil)
+      print_to_buffer(nil)
     end
   else
     vim.list_extend(print_buffer, clean_stacktrace(err))
