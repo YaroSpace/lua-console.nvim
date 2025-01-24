@@ -479,6 +479,26 @@ describe('lua-console.utils', function()
         assert.has_string(result, expected)
       end)
 
+      it('shows value of the last assignment on the corresponging line as virtual text', function()
+        vim.api.nvim_win_set_cursor(win, { 1, 0 })
+        h.send_keys('V4j')
+
+        content = h.to_table([[
+					a = 5
+					for i = 1, 5 do
+						i = i + 5
+					end
+					vim.bo.filetype = tostring(a + 5) .. 'test'
+  			]])
+        h.set_buffer(buf, content)
+        utils.eval_code_in_buffer()
+
+        expected = config.buffer.result_prefix .. '5'
+
+        result = h.get_virtual_text(buf, 0, 0)
+        assert.has_string(result, expected)
+      end)
+
       it('gives syntax error message', function()
         vim.api.nvim_win_set_cursor(win, { 1, 0 })
 
