@@ -1,4 +1,7 @@
-local config, mappings, utils, injections
+local config = require('lua-console.config')
+local mappings = require('lua-console.mappings')
+local utils = require('lua-console.utils')
+local injections = require('lua-console.injections')
 
 local get_or_create_buffer = function()
   --- @type number
@@ -77,10 +80,7 @@ end
 local setup = function(opts)
   _G.Lua_console = { buf = false, win = false, height = 0, ctx = {} }
 
-  config = require('lua-console.config').setup(opts)
-  mappings = require('lua-console.mappings')
-  utils = require('lua-console.utils')
-  injections = require('lua-console.injections')
+  config.setup(opts)
 
   mappings.set_global_mappings()
   mappings.set_console_commands()
