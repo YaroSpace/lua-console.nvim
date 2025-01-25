@@ -14,18 +14,21 @@ After installing Neovim, it took me some time to configure it, learn its setting
 I got fed up of constantly hitting `:`, typing `lua= command`, then typing `:messages` to see the output, only to find out that a made a typo or a 
 syntax error and retyping the whole thing again, copying the paths from error stacktraces and so on.  I needed something better, so there it is.
 
+<br>
+
 ## ✨ Features
 
 - Evaluate single line expressions and statements, visually selected lines of code or the whole buffer
-- Pretty print Lua objects, including function details and their source paths
-- Show normal and error output in the console/buffer, including output of `print()`, errors and stacktraces. 
+- Pretty print Lua objects, including results of assignments, function details and their source paths
+- Show normal and error output inline in the console/buffer, including output of `print()`, errors and stacktraces. 
 - Syntax highlighting and autocompletion
-- Load Neovim’s messages into console for inspection and copy/paste
+- Load Neovim’s messages and output of ex commands into console for inspection and copy/paste
 - Open links from stacktraces and function sources
 - Save / Load / Autosave console session
 - Use as a scratch pad for code gists
 - Attach code evaluators to any buffer
 
+<br>
 
 ## 📦 Installation
 
@@ -34,12 +37,18 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 return {
   "yarospace/lua-console.nvim",
-  lazy = true, keys = "`", opts = {},
+  lazy = true, 
+  keys = {'`', '<Leader>`'},
+  opts = {},
 }
 ```
-otherwise, install with your favorite package manager and add
-`require('lua-console').setup { custom_options }` somewhere in your config.
+otherwise, install with your favorite package manager and add somewhere in your config:
 
+```lua
+require('lua-console').setup { your_custom_options }
+``` 
+
+<br>
 
 ## ⚙️  Configuration
 
@@ -87,6 +96,7 @@ opts = {
 
 </details>
 
+<br>
 
 ## 🚀 Basic usage (with default mappings)
 
@@ -110,6 +120,7 @@ opts = {
   saved whenever it is toggled or closed. 
 - You can resize the console with `<C-Up>` and `<C-Down>`.
 
+<br>
 
 ## 📓 Notes on globals, locals and preserving execution context
 
@@ -129,6 +140,7 @@ There are two functions available within the console:
 - `_ctx()` - will print the contents of the context
 - `_ctx_clear()` - clears the context
 
+<br>
 
 ## ⭐ Extra features
 
@@ -257,6 +269,8 @@ There are two functions available within the console:
   ]]
   ```
 
+<br>
+
 ## Alternatives and comparison
 
 There are a number of alternatives available, notably:
@@ -268,5 +282,6 @@ There are a number of alternatives available, notably:
 Initially, when starting with Lua and Neovim, I tried all the REPLs/code runners I could find.  However, I was not satisfied with all of them in one way or another.  
 Lua-console is an attempt to combine the best features of all of them, like REPL / scratch pad / code runner / debug console, while leaving the UX and config simple.
 
+<br>
 
 ## 🔥 All feedback and feature requests are very welcome!  Enjoy!

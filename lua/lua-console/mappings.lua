@@ -1,6 +1,5 @@
 local M = {}
 
-local console = require('lua-console')
 local config = require('lua-console.config')
 local utils = require('lua-console.utils')
 
@@ -13,6 +12,7 @@ local function set_map(buf, map, opts, mode)
 end
 
 M.set_global_mappings = function()
+  local console = require('lua-console')
   local m = config.mappings
 
   set_map(nil, m.toggle, {

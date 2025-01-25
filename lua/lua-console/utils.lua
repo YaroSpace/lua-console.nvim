@@ -5,6 +5,8 @@ local to_string = function(tbl, sep, trim)
   tbl = tbl or {}
   sep = sep or '\n'
 
+  if type(tbl) ~= 'table' then tbl = { tbl } end
+
   local line = table.concat(tbl, sep)
   local patterns = { '\\r', '\\t', '\\n' }
 
@@ -123,9 +125,9 @@ local get_path_lnum = function(path)
   return path, lnum
 end
 
----Determines if there is an assigment on the line and returns its value
----@param line string[]
-local get_assignment = function(line)
+----Determines if there is an assigment on the line and returns its value
+----@param line string[]
+local get_line_assignment = function(line)
   if not line or #line == 0 then return end
 
   local lhs = line[1]:match('^(.-)%s*=')
@@ -138,39 +140,29 @@ local get_assignment = function(line)
   end
 end
 
-local print_buffer = {}
-
----@param buf number
----@param lines string[] Text to append to current buffer after current selection
-local append_current_buffer = function(buf, lines)
-  if not lines or #lines == 0 then return end
-
+local get_last_assignment = function()
+  local ctx = get_ctx()
   local lnum = vim.fn.line('.')
-  local prefix = config.buffer.result_prefix
-  local empty_results = { 'nil', '', '""', "''" }
 
-  local virtual_text
-  local line = lines[#lines]
+  local last_var = ctx._last_assignment
+  local last_val = ctx[ctx._last_assignment]
 
-  if vim.tbl_contains(empty_results, line) then
-    table.remove(lines)
-    virtual_text = line
+  if not last_var then return end
+
+  local line
+  local offset = 0
+
+  for i = lnum - 1, 0, -1 do
+    line = vim.api.nvim_buf_get_lines(0, i, i + 1, false)[1]
+
+    if line:match('^%s*' .. last_var .. '%s*=') then break end
+    offset = offset + 1
   end
 
-  local assignment_value = get_assignment(vim.fn.getbufline(buf, lnum, lnum))
-  if assignment_value ~= nil then virtual_text = assignment_value end
-
-  if virtual_text then show_virtual_text(buf, 3, prefix .. virtual_text, lnum - 1, 'eol', 'Comment') end
-
-  if #lines == 0 then return end
-
-  lines[1] = prefix .. lines[1]
-  table.insert(lines, 1, '') -- insert an empty line
-
-  vim.api.nvim_buf_set_lines(buf, lnum, lnum, false, lines)
+  return last_var, last_val, offset
 end
 
----Pretty prints objects and appends to print_buffer
+---Pretty prints objects
 ---@param ... any[]
 ---@return string[]
 local pretty_print = function(...)
@@ -187,10 +179,47 @@ local pretty_print = function(...)
     result = result .. var_no .. vim.inspect(o)
   end
 
-  result = to_table(result)
-  vim.list_extend(print_buffer, result)
+  return to_table(result)
+end
 
-  -- return result
+local print_buffer = {}
+
+local print_to_buffer = function(...)
+  local ret = pretty_print(...)
+  vim.list_extend(print_buffer, ret)
+end
+
+---@param buf number
+---@param lines string[] Text to append to current buffer after current selection
+local append_current_buffer = function(buf, lines)
+  if not lines or #lines == 0 then return end
+
+  local lnum = vim.fn.line('.')
+  local prefix = config.buffer.result_prefix
+  local empty_results = { 'nil', '', '""', "''" }
+
+  local virtual_text
+  local line = lines[#lines]
+
+  local last_assigned_var, last_assigned_val, last_assignment_offset = get_last_assignment()
+  if last_assigned_var then
+    virtual_text = to_string(pretty_print(last_assigned_val), '', true)
+    show_virtual_text(buf, 3, prefix .. virtual_text, lnum - last_assignment_offset - 1, 'eol', 'Comment')
+  end
+
+  if vim.tbl_contains(empty_results, line) then
+    table.remove(lines)
+
+    virtual_text = get_line_assignment(vim.fn.getbufline(buf, lnum, lnum)) or line
+    show_virtual_text(buf, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
+  end
+
+  if #lines == 0 then return end
+
+  lines[1] = prefix .. lines[1]
+  table.insert(lines, 1, '') -- insert an empty line
+
+  vim.api.nvim_buf_set_lines(buf, lnum, lnum, false, lines)
 end
 
 local function remove_empty_lines(tbl)
@@ -227,11 +256,11 @@ local function clean_stacktrace(error)
   return lines
 end
 
-local function add_return(tbl)
-  if vim.fn.trim(tbl[#tbl]) == 'end' then return tbl end
+local function add_return(tbl, lnum)
+  if to_string(tbl[lnum], '', true):match('^%s*end') then return tbl end
 
   local ret = vim.deepcopy(tbl)
-  ret[#ret] = 'return ' .. ret[#ret]
+  ret[lnum] = 'return ' .. ret[lnum]
 
   return ret
 end
@@ -245,19 +274,26 @@ function get_ctx(buf)
   local ctx = lc.ctx[buf]
   if config.buffer.preserve_context and ctx then return ctx end
 
-  local env, mt = {}, {}
+  local env, mt, values = {}, {}, {}
 
   mt = {
-    print = pretty_print,
+    print = print_to_buffer,
     _ctx = function()
-      return vim.tbl_extend('force', {}, env)
+      return vim.deepcopy(values)
     end,
     _ctx_clear = function()
       lc.ctx[buf] = nil
     end,
     __index = function(_, key)
-      return mt[key] and mt[key] or _G[key]
+      return mt[key] and mt[key] or values[key] or _G[key]
     end,
+    __newindex = function(_, k, v)
+      values[k] = v
+      mt._last_assignment = k
+    end,
+    _reset_last_assignment = function()
+      mt._last_assignment = nil
+    end
   }
 
   lc.ctx[buf] = env
@@ -271,10 +307,17 @@ end
 function lua_evaluator(lines, ctx)
   vim.validate { lines = { lines, 'table' } }
 
-  local lines_with_return = add_return(lines)
   local env = ctx or get_ctx()
+  env._reset_last_assignment()
 
-  if not select(2, load(to_string(lines_with_return), '', 't', env)) then lines = lines_with_return end
+  local lines_with_return_first_line = add_return(lines, 1)
+  local lines_with_return_last_line = add_return(lines, #lines)
+
+  if not select(2, load(to_string(lines_with_return_first_line), '', 't', env)) then
+      lines = lines_with_return_first_line
+  elseif not select(2, load(to_string(lines_with_return_last_line), '', 't', env)) then
+    lines = lines_with_return_last_line
+  end
 
   local code, error = load(to_string(lines), 'Lua console: ', 't', env)
   if error then return to_table(error) end
@@ -289,9 +332,9 @@ function lua_evaluator(lines, ctx)
     table.remove(result, 1)
 
     if #result > 0 then
-      pretty_print(unpack(result))
+      print_to_buffer(unpack(result))
     else
-      pretty_print(nil)
+      print_to_buffer(nil)
     end
   else
     vim.list_extend(print_buffer, clean_stacktrace(err))
@@ -476,6 +519,8 @@ local attach_toggle = function(buf)
   end
 
   mappings.set_evaluator_mappings(buf, toggle)
+  vim.api.nvim_set_option_value('syntax', 'on', { buf = buf })
+
   vim.notify(
     ('Evaluator %s for buffer [%s:%s]'):format(toggle and 'attached' or 'dettached', name, buf),
     vim.log.levels.INFO
