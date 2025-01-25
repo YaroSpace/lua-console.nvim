@@ -3,9 +3,9 @@ attach_toggle()	lua-console.nvim_api.txt	/*attach_toggle()*
 clean_stacktrace()	lua-console.nvim_api.txt	/*clean_stacktrace()*
 default_handler()	lua-console.nvim_api.txt	/*default_handler()*
 eval_code_in_buffer()	lua-console.nvim_api.txt	/*eval_code_in_buffer()*
-get_assignment()	lua-console.nvim_api.txt	/*get_assignment()*
 get_external_evaluator()	lua-console.nvim_api.txt	/*get_external_evaluator()*
 get_lang()	lua-console.nvim_api.txt	/*get_lang()*
+get_line_assignment()	lua-console.nvim_api.txt	/*get_line_assignment()*
 load_messages()	lua-console.nvim_api.txt	/*load_messages()*
 load_saved_console()	lua-console.nvim_api.txt	/*load_saved_console()*
 lua-console.nvim-table-of-contents	lua-console.nvim.txt	/*lua-console.nvim-table-of-contents*

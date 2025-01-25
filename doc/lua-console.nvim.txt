@@ -39,17 +39,21 @@ the whole thing again, copying the paths from error stacktraces and so on. I
 needed something better, so there it is.
 
 
+
+
 ✨ FEATURES*lua-console.nvim-💻-lua-console-main-develop-luarocks-✨-features*
 
 - Evaluate single line expressions and statements, visually selected lines of code or the whole buffer
-- Pretty print Lua objects, including function details and their source paths
-- Show normal and error output in the console/buffer, including output of `print()`, errors and stacktraces.
+- Pretty print Lua objects, including results of assignments, function details and their source paths
+- Show normal and error output inline in the console/buffer, including output of `print()`, errors and stacktraces.
 - Syntax highlighting and autocompletion
-- Load Neovim’s messages into console for inspection and copy/paste
+- Load Neovim’s messages and output of ex commands into console for inspection and copy/paste
 - Open links from stacktraces and function sources
 - Save / Load / Autosave console session
 - Use as a scratch pad for code gists
 - Attach code evaluators to any buffer
+
+
 
 
 📦 INSTALLATION*lua-console.nvim-💻-lua-console-main-develop-luarocks-📦-installation*
@@ -59,12 +63,20 @@ With lazy.nvim <https://github.com/folke/lazy.nvim>:
 >lua
     return {
       "yarospace/lua-console.nvim",
-      lazy = true, keys = "`", opts = {},
+      lazy = true, 
+      keys = {'`', '<Leader>`'},
+      opts = {},
     }
 <
 
-otherwise, install with your favorite package manager and add
-`require('lua-console').setup { custom_options }` somewhere in your config.
+otherwise, install with your favorite package manager and add somewhere in your
+config:
+
+>lua
+    require('lua-console').setup { your_custom_options }
+<
+
+
 
 
 ⚙️ CONFIGURATION*lua-console.nvim-💻-lua-console-main-develop-luarocks-⚙️-configuration*
@@ -111,6 +123,8 @@ Default Settings ~
 <
 
 
+
+
 🚀 BASIC USAGE (WITH DEFAULT MAPPINGS)*lua-console.nvim-💻-lua-console-main-develop-luarocks-🚀-basic-usage-(with-default-mappings)*
 
 - Install, press the mapped key ``` and start exploring.
@@ -133,6 +147,8 @@ Default Settings ~
 - Use `S` and `L` to save / load the console session to preserve history of your hacking. If the `autosave` option is on, the contents of the console will be
     saved whenever it is toggled or closed.
 - You can resize the console with `<C-Up>` and `<C-Down>`.
+
+
 
 
 📓 NOTES ON GLOBALS, LOCALS AND PRESERVING EXECUTION CONTEXT*lua-console.nvim-💻-lua-console-main-develop-luarocks-📓-notes-on-globals,-locals-and-preserving-execution-context*
@@ -158,6 +174,8 @@ There are two functions available within the console:
 
 - `_ctx()` - will print the contents of the context
 - `_ctx_clear()` - clears the context
+
+
 
 
 ⭐ EXTRA FEATURES*lua-console.nvim-💻-lua-console-main-develop-luarocks-⭐-extra-features*
@@ -276,6 +294,8 @@ SETTING UP
     <
 
 
+
+
 ALTERNATIVES AND COMPARISON*lua-console.nvim-💻-lua-console-main-develop-luarocks-alternatives-and-comparison*
 
 There are a number of alternatives available, notably:
@@ -289,6 +309,8 @@ runners I could find. However, I was not satisfied with all of them in one way
 or another. Lua-console is an attempt to combine the best features of all of
 them, like REPL / scratch pad / code runner / debug console, while leaving the
 UX and config simple.
+
+
 
 
 🔥 ALL FEEDBACK AND FEATURE REQUESTS ARE VERY WELCOME! ENJOY!*lua-console.nvim-💻-lua-console-main-develop-luarocks-🔥-all-feedback-and-feature-requests-are-very-welcome!-enjoy!*

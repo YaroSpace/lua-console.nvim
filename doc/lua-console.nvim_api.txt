@@ -36,14 +36,25 @@ Parameters ~
     {buf} `(number)`
 
 ------------------------------------------------------------------------------
-                                                              *get_assignment()*
+                                                         *get_line_assignment()*
 
-`get_assignment`({line})
-
+`get_line_assignment`({line})
 
 if there is an assigment on the line and returns its value
+line string[]
+
+------------------------------------------------------------------------------
+                                                                *pretty_print()*
+
+`pretty_print`({...})
+
+
+prints objects
 Parameters ~
-    {line} `(string[])`
+    {...} `(any[])`
+
+Return ~
+`(string[])`
 
 ------------------------------------------------------------------------------
                                                        *append_current_buffer()*
@@ -53,19 +64,6 @@ Parameters ~
 Parameters ~
     {buf} `(number)`
     {lines} `(string[])` Text to append to current buffer after current selection
-
-------------------------------------------------------------------------------
-                                                                *pretty_print()*
-
-`pretty_print`({...})
-
-
-prints objects and appends to print_buffer
-Parameters ~
-    {...} `(any[])`
-
-Return ~
-`(string[])`
 
 ------------------------------------------------------------------------------
                                                             *clean_stacktrace()*
