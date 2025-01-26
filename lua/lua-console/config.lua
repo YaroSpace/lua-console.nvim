@@ -16,7 +16,7 @@ local default_config = {
     title = ' Lua console ',
     title_pos = 'left',
     height = 0.6, -- percentage of main window
-    zindex = 1,
+    zindex = 100,
   },
   mappings = {
     toggle = '`',

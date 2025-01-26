@@ -19,7 +19,7 @@ end
 M.to_string = function(tbl)
   tbl = tbl or {}
 
-  if type(tbl) == 'string' then tbl = { tbl } end
+  if type(tbl) ~= 'table' then tbl = { tbl } end
   return table.concat(tbl, '\n'):clean()
 end
 
@@ -62,7 +62,7 @@ end
 
 M.get_virtual_text = function(buf, line_start, line_end)
   local ns = vim.api.nvim_create_namespace('Lua-console')
-  local ids = vim.api.nvim_buf_get_extmarks(buf, ns, { line_start or 0, 0 }, { line_end or 0, -1 }, {})
+  local ids = vim.api.nvim_buf_get_extmarks(buf, ns, { line_start or 0, 0 }, { line_end or -1, -1 }, {})
 
   if vim.tbl_isempty(ids) then
     _G.LOG('No extmarks found')
