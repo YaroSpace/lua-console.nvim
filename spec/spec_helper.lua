@@ -61,17 +61,18 @@ M.send_keys = function(keys)
 end
 
 M.get_virtual_text = function(buf, line_start, line_end)
-  local ns = vim.api.nvim_create_namespace('Lua-console')
-  local ids = vim.api.nvim_buf_get_extmarks(buf, ns, { line_start or 0, 0 }, { line_end or -1, -1 }, {})
+  local ids = vim.api.nvim_buf_get_extmarks(buf, -1, { line_start or 0, 0 }, { line_end or -1, -1 }, { details = true })
 
   if vim.tbl_isempty(ids) then
     _G.LOG('No extmarks found')
     return ''
   end
 
-  local mark = vim.api.nvim_buf_get_extmark_by_id(buf, ns, ids[1][1], { details = true })
+  local marks = vim.tbl_map(function(mark)
+    return mark[4].virt_text[1][1]
+  end, ids)
 
-  return mark[3].virt_text[1][1]
+  return marks
 end
 
 ---Collects paths for nested keys

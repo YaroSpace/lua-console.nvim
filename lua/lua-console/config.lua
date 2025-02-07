@@ -7,6 +7,7 @@ local default_config = {
     autosave = true, -- autosave on console hide / close
     load_on_start = true, -- load saved session on start
     preserve_context = true, -- preserve results between evaluations
+    print_one_line_results = true,
   },
   window = {
     relative = 'editor',

@@ -1,6 +1,8 @@
 local assert = require('luassert.assert')
 local h = require('spec_helper')
 
+--TODO: add multiple assigmnets andchar selection
+
 describe('lua-console.utils', function()
   _G.Lua_console = {}
   local buf, config, utils
@@ -8,7 +10,7 @@ describe('lua-console.utils', function()
   setup(function()
     utils = require('lua-console.utils')
     config = require('lua-console.config')
-    config.setup()
+    config.setup { buffer = { show_one_line_results = true } }
   end)
 
   before_each(function()
@@ -332,6 +334,23 @@ describe('lua-console.utils', function()
         assert.has_string(result, expected)
       end)
 
+      it('single line - char selection', function()
+        content = h.to_table([[
+					Some text
+					LOG(vim.bo.filetype)
+					Some text
+  			]])
+
+        h.set_buffer(buf, content)
+
+        vim.api.nvim_win_set_cursor(win, { 2, 4 })
+        h.send_keys('v14l')
+        utils.eval_code_in_buffer()
+
+        result = h.get_buffer(buf)
+        assert.has_string(result, 'lua')
+      end)
+
       it('multiline', function()
         vim.api.nvim_win_set_cursor(win, { 2, 0 })
         vim.cmd.exe("'normal V3j'")
@@ -495,7 +514,27 @@ describe('lua-console.utils', function()
 
         expected = config.buffer.result_prefix .. '5'
 
-        result = h.get_virtual_text(buf, 0, 0)
+        result = h.get_virtual_text(buf)
+        assert.has_string(result, expected)
+      end)
+
+      it('shows value of the multiple assignments as virtual text', function()
+        vim.api.nvim_win_set_cursor(win, { 1, 0 })
+        h.send_keys('V4j')
+
+        content = h.to_table([[
+					a = 5
+					for i = 1, 5 do
+						i = i + 5
+					end
+					vim.bo.filetype, c = tostring(a + 5) .. 'test', 200
+  			]])
+        h.set_buffer(buf, content)
+        utils.eval_code_in_buffer()
+
+        expected = config.buffer.result_prefix .. '[1]"10test", [2] 200'
+
+        result = h.get_virtual_text(buf)
         assert.has_string(result, expected)
       end)
 
