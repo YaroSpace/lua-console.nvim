@@ -26,9 +26,13 @@ end
 local to_table = function(obj)
   obj = type(obj) == 'string' and { obj } or obj
 
-  return vim.iter(obj):map(function(line)
-    return vim.split(line or '', '\n', { trimempty = true })
-  end):flatten():totable()
+  return vim
+    .iter(obj)
+    :map(function(line)
+      return vim.split(line or '', '\n', { trimempty = true })
+    end)
+    :flatten()
+    :totable()
 end
 
 local function remove_indentation(tbl)
@@ -47,8 +51,8 @@ end
 ---@param highlight string higlight group
 local show_virtual_text = function(buf, id, text, lnum, position, highlight)
   local ns = vim.api.nvim_create_namespace('Lua-console')
-  local ext_mark = vim.api.nvim_buf_get_extmark_by_id(0, ns, id, {})
 
+  local ext_mark = vim.api.nvim_buf_get_extmark_by_id(0, ns, id, {})
   if #ext_mark > 0 then vim.api.nvim_buf_del_extmark(0, ns, id) end
 
   vim.api.nvim_buf_set_extmark(buf, ns, lnum, 0, {
@@ -77,8 +81,18 @@ local toggle_help = function(buf)
 
     message =
       [[%s - eval a line or selection, %s - eval buffer, %s - open file, %s - load messages, %s - save console, %s - load console, %s/%s - resize window, %s - toggle help]]
-    message =
-      string.format(message, cm.eval, cm.eval_buffer, cm.open, cm.messages, cm.save, cm.load, cm.resize_up, cm.resize_down, cm.help)
+    message = string.format(
+      message,
+      cm.eval,
+      cm.eval_buffer,
+      cm.open,
+      cm.messages,
+      cm.save,
+      cm.load,
+      cm.resize_up,
+      cm.resize_down,
+      cm.help
+    )
 
     local visible_line = vim.fn.line('w0')
     show_virtual_text(buf, 2, message, visible_line - 1, 'overlay', 'Comment')
@@ -155,11 +169,13 @@ local get_last_assignment = function()
   for i = lnum - 1, 0, -1 do
     line = vim.api.nvim_buf_get_lines(0, i, i + 1, false)[1]
 
-    if line:match('^%s*' .. last_var .. '%s*=') then break end
+    if line:match('^%s*' .. last_var .. '%s*,?[^=]-=') then break end
     offset = offset + 1
   end
 
-  return last_var, last_val, offset
+  lnum = (lnum - offset) > 0 and lnum - offset or nil
+
+  return last_var, last_val, lnum
 end
 
 ---Pretty prints objects
@@ -191,30 +207,44 @@ end
 
 ---@param buf number
 ---@param lines string[] Text to append to current buffer after current selection
-local append_current_buffer = function(buf, lines)
+---@param lnum? number|nil Line number to append from
+local append_current_buffer = function(buf, lines, lnum)
   if not lines or #lines == 0 then return end
+  lnum = lnum or vim.fn.line('.')
 
-  local lnum = vim.fn.line('.')
+  local ns = vim.api.nvim_create_namespace('Lua-console')
+  vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+
   local prefix = config.buffer.result_prefix
   local empty_results = { 'nil', '', '""', "''" }
 
   local virtual_text
   local line = lines[#lines]
 
-  local last_assigned_var, last_assigned_val, last_assignment_offset = get_last_assignment()
-  if last_assigned_var then
-    virtual_text = to_string(pretty_print(last_assigned_val), '', true)
-    show_virtual_text(buf, 3, prefix .. virtual_text, lnum - last_assignment_offset - 1, 'eol', 'Comment')
+  local _, last_assigned_val, last_assignment_lnum = get_last_assignment()
+  if last_assignment_lnum then
+    last_assigned_val = to_string(pretty_print(last_assigned_val), '', true)
+    show_virtual_text(buf, 3, prefix .. last_assigned_val, last_assignment_lnum - 1, 'eol', 'Comment')
   end
 
   if vim.tbl_contains(empty_results, line) then
     table.remove(lines)
 
-    virtual_text = get_line_assignment(vim.fn.getbufline(buf, lnum, lnum)) or line
-    show_virtual_text(buf, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
+    virtual_text = get_line_assignment(vim.fn.getbufline(buf, lnum, lnum)) or line -- ! resets env._last_assignment by calling evaluator
+
+    if last_assignment_lnum ~= lnum then
+      show_virtual_text(buf, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
+    end
   end
 
   if #lines == 0 then return end
+
+  if #lines == 1 and last_assignment_lnum ~= lnum and not config.buffer.show_one_line_results then
+    virtual_text = lines[1]
+    show_virtual_text(buf, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
+
+    return
+  end
 
   lines[1] = prefix .. lines[1]
   table.insert(lines, 1, '') -- insert an empty line
@@ -293,7 +323,7 @@ function get_ctx(buf)
     end,
     _reset_last_assignment = function()
       mt._last_assignment = nil
-    end
+    end,
   }
 
   lc.ctx[buf] = env
@@ -314,7 +344,7 @@ function lua_evaluator(lines, ctx)
   local lines_with_return_last_line = add_return(lines, #lines)
 
   if not select(2, load(to_string(lines_with_return_first_line), '', 't', env)) then
-      lines = lines_with_return_first_line
+    lines = lines_with_return_first_line
   elseif not select(2, load(to_string(lines_with_return_last_line), '', 't', env)) then
     lines = lines_with_return_last_line
   end
@@ -408,23 +438,23 @@ end
 ---@param buf number
 ---@param range number[]
 ---@return string
-local function get_lang(buf, range)
-  local pattern = ('^.*' .. config.external_evaluators.lang_prefix .. '(.-)%s*$')
+local function get_lang(buf, lnum)
+  local pattern = ('^.*' .. config.external_evaluators.lang_prefix .. '(%w+)%s*$')
   local line, lang
 
-  line = vim.api.nvim_buf_get_lines(buf, math.max(0, range[1] - 2), range[2], false)[1]
-  lang = line:match(pattern)
+  line = vim.api.nvim_buf_get_lines(buf, math.max(0, lnum - 1), lnum, false)[1]
+  lang = line and line:match(pattern)
   if lang then return lang end
 
   line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
-  lang = line:match(pattern)
+  lang = line and line:match(pattern)
   if lang then return lang end
 
   return vim.bo[buf].filetype
 end
 
-local get_evaluator = function(buf, range)
-  local lang = get_lang(buf, range)
+local get_evaluator = function(buf, lnum)
+  local lang = get_lang(buf, lnum)
 
   if lang == '' then
     vim.notify('Plese specify the language to evaluate or set the filetype', vim.log.levels.WARN)
@@ -440,27 +470,35 @@ end
 ---@param full? boolean evaluate full buffer
 local eval_code_in_buffer = function(buf, full)
   buf = buf or vim.fn.bufnr()
-  local win = vim.fn.bufwinid(buf)
 
-  if vim.api.nvim_get_mode().mode == 'V' then vim.api.nvim_input('<Esc>') end
+  local mode = vim.api.nvim_get_mode().mode
+  if mode == 'V' or mode == 'v' then vim.api.nvim_input('<Esc>') end
 
-  local v_start, v_end
+  local v_start, v_end, lines
+
   if full then
     v_start, v_end = 1, vim.api.nvim_buf_line_count(buf)
-  else
-    v_start, v_end = vim.fn.line('.', win), vim.fn.line('v', win)
+  elseif mode == 'v' or mode == 'V' then
+    v_start, v_end = vim.fn.getpos('.'), vim.fn.getpos('v')
+    lines = vim.fn.getregion(v_start, v_end, { type = mode })
+
+    v_start, v_end = v_start[2], v_end[2]
+
     if v_start > v_end then
       v_start, v_end = v_end, v_start
     end
+  else
+    v_start = vim.fn.line('.')
+    v_end = v_start
   end
 
-  vim.api.nvim_win_set_cursor(win, { v_end, 0 })
+  vim.fn.cursor(v_end, 0)
 
-  local lines = vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
+  lines = lines or vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
   lines = remove_empty_lines(lines)
   if #lines == 0 then return end
 
-  local evaluator = get_evaluator(buf, { v_start, v_end })
+  local evaluator = get_evaluator(buf, v_start - 1)
   if not evaluator then return end
 
   local result = evaluator(lines)
@@ -472,6 +510,7 @@ end
 ---Load messages into console
 local load_messages = function(buf)
   local ns = vim.api.nvim_create_namespace('Lua-console')
+  local lnum = vim.fn.line('.')
 
   ---This way we catch the output of messages command, in case it was overriden by some other plugin, like Noice
   vim.ui_attach(ns, { ext_messages = true }, function(event, entries) ---@diagnostic disable-line
@@ -484,8 +523,8 @@ local load_messages = function(buf)
     if #messages == 0 then return end
 
     vim.schedule(function()
-      vim.api.nvim_input('<Down>') -- forcing to redraw buffer
-      append_current_buffer(buf, to_table(messages))
+      append_current_buffer(buf, to_table(messages), lnum)
+      vim.api.nvim__redraw { flush = true, buf = buf }
     end)
   end)
 

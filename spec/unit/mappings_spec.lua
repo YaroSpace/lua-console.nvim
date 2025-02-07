@@ -29,6 +29,7 @@ describe('lua-console.nvim - mappings', function()
       buffer = {
         load_on_start = false,
         save_path = vim.fn.stdpath('state') .. '/lua-console-test.lua',
+        show_one_line_results = true,
       },
     }
 
@@ -264,6 +265,7 @@ describe('lua-console.nvim - mappings', function()
       utils.attach_toggle(other_buf)
     end)
 
+    --TODO: finish spec
     it('cretes mappings for attached buffer', function()
       -- code
     end)
@@ -328,6 +330,7 @@ describe('lua-console.nvim - mappings', function()
       -- code
     end)
 
+    --TODO: finish spec
     it('removes mappings for dettached buffer', function()
       -- code
     end)

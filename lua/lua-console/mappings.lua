@@ -129,7 +129,7 @@ M.set_evaluator_mappings = function(buf, toggle)
     callback = function()
       utils.eval_code_in_buffer(buf)
     end,
-  }, { 'n', 'v' })
+  }, { 'n', 'x' })
 
   set_map(buf, m.eval_buffer, {
     desc = 'Eval code in current buffer',
