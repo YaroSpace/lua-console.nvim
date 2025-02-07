@@ -59,11 +59,12 @@ Return ~
 ------------------------------------------------------------------------------
                                                        *append_current_buffer()*
 
-`append_current_buffer`({buf}, {lines})
+`append_current_buffer`({buf}, {lines}, {lnum})
 
 Parameters ~
     {buf} `(number)`
     {lines} `(string[])` Text to append to current buffer after current selection
+    {lnum} `(optional)` `(number|nil)` Line number to append from
 
 ------------------------------------------------------------------------------
                                                             *clean_stacktrace()*
@@ -113,7 +114,7 @@ Return ~
 ------------------------------------------------------------------------------
                                                                     *get_lang()*
 
-`get_lang`({buf}, {range})
+`get_lang`({buf}, {lnum})
 
 the language of the code/console/buffer
 
