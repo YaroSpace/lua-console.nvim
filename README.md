@@ -18,7 +18,7 @@ syntax error and retyping the whole thing again, copying the paths from error st
 
 ## ✨ Features
 
-- Evaluate single line expressions and statements, visually selected lines of code or the whole buffer
+- Evaluate single line expressions and statements, visually selected lines or characters of code or the whole buffer
 - Pretty print Lua objects, including results of assignments, function details and their source paths
 - Show normal and error output inline in the console/buffer, including output of `print()`, errors and stacktraces. 
 - Syntax highlighting and autocompletion
@@ -71,6 +71,7 @@ opts = {
     autosave = true, -- autosave on console hide / close
     load_on_start = true, -- load saved session on start
     preserve_context = true,  -- preserve results between evaluations
+    print_one_line_results = true, -- prints one line results, even if already shown as virtual text
   },
   window = {
     border = 'double', -- single|double|rounded
@@ -103,7 +104,7 @@ opts = {
 - Install, press the mapped key `` ` `` and start exploring. 
 - Enter code as normal, in insert mode.
 - Hit `Enter` in normal mode to evaluate a variable, statement or an expression in the current line. 
-- Visually select a range of lines and press `Enter` to evaluate the code in the range or use `<S-Enter>` to evaluate the whole console.
+- Visually select a region or range of lines and press `Enter` to evaluate the code in the range or use `<S-Enter>` to evaluate the whole console.
 - The evaluation of the last line is returned and printed, so no `return` is needed in most cases.  
   To avoid noise, if the return of your execution is `nil`, e.g. from a loop or a function without return, it will not be printed, but shown as virtual text. 
   The result of assignments on the last line will be also shown as virtual text.
