@@ -56,14 +56,15 @@ local show_virtual_text = function(buf, id, text, lnum, position, highlight)
   local ext_mark = vim.api.nvim_buf_get_extmark_by_id(0, ns, id, {})
   if #ext_mark > 0 then vim.api.nvim_buf_del_extmark(0, ns, id) end
 
-  vim.api.nvim_buf_set_extmark(buf, ns, lnum, 0, {
-    id = id,
-    virt_text = { { text, highlight } },
-    virt_text_pos = position,
-    virt_text_hide = true,
-    undo_restore = false,
-    invalidate = true,
-  })
+  return ns,
+    vim.api.nvim_buf_set_extmark(buf, ns, lnum, 0, {
+      id = id,
+      virt_text = { { text, highlight } },
+      virt_text_pos = position,
+      virt_text_hide = true,
+      undo_restore = false,
+      invalidate = true,
+    })
 end
 
 local toggle_help = function(buf)
@@ -81,11 +82,12 @@ local toggle_help = function(buf)
     vim.api.nvim_buf_del_extmark(buf, ns, 1)
 
     message =
-      [[%s - eval a line or selection, %s - eval buffer, %s - open file, %s - load messages, %s - save console, %s - load console, %s/%s - resize window, %s - toggle help]]
+      [[%s - eval a line or selection, %s - eval buffer, %s - kill process, %s - open file, %s - load messages, %s - save console, %s - load console, %s/%s - resize window, %s - toggle help]]
     message = string.format(
       message,
       cm.eval,
       cm.eval_buffer,
+      cm.kill_ps,
       cm.open,
       cm.messages,
       cm.save,
@@ -316,6 +318,7 @@ function get_ctx(buf)
       lc.ctx[buf] = nil
     end,
     __index = function(_, key)
+      if key == '_ctx' then return mt._ctx() end
       return mt[key] and mt[key] or values[key] or _G[key]
     end,
     __newindex = function(_, k, v)
@@ -324,6 +327,9 @@ function get_ctx(buf)
     end,
     _reset_last_assignment = function()
       mt._last_assignment = nil
+    end,
+    __ex = function(id)
+      mt._ex = id
     end,
   }
 
@@ -421,15 +427,27 @@ local get_external_evaluator = function(buf, lang)
 
   opts.stdout = opts.stdout or default_handler(buf, 'out', lang_config)
   opts.stderr = opts.stderr or default_handler(buf, 'err', lang_config)
-  opts.on_exit = opts.on_exit or function() end
+
+  local fun = opts.on_exit
+  opts.on_exit = function(system_completed)
+    vim.schedule(function()
+      vim.api.nvim_buf_del_extmark(buf, ns, 10)
+    end)
+    _ = fun and fun(system_completed)
+  end
 
   return function(lines)
     local cmd = vim.tbl_extend('force', {}, lang_config.cmd)
     local code = (lang_config.code_prefix or '') .. to_string(remove_indentation(lines)) -- some languages, like python are concerned with indentation
     table.insert(cmd, code)
 
+    ns = show_virtual_text(buf, 10, 'Running...', 0, 'right_align', 'Comment')
+
     local status, id = pcall(vim.system, cmd, opts, opts.on_exit)
-    if not status then
+
+    if status then
+      get_ctx(buf).__ex(id)
+    else
       vim.notify(('Could not run external evaluator for lang: %s.  Error: %s'):format(lang, id), vim.log.levels.ERROR)
     end
 
@@ -570,6 +588,11 @@ local attach_toggle = function(buf)
   )
 end
 
+local function kill_process()
+  local ctx = get_ctx()
+  _ = ctx._ex and ctx._ex:kill()
+end
+
 return {
   toggle_help = toggle_help,
   load_saved_console = load_saved_console,
@@ -581,4 +604,5 @@ return {
   load_messages = load_messages,
   get_path_lnum = get_path_lnum,
   attach_toggle = attach_toggle,
+  kill_process = kill_process,
 }

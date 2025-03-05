@@ -26,6 +26,13 @@ M.set_global_mappings = function()
     end,
     desc = 'Lua-console - attach to buffer',
   })
+
+  set_map(nil, m.kill_ps, {
+    callback = function()
+      utils.kill_process()
+    end,
+    desc = 'Lua-console - kill process',
+  })
 end
 
 M.set_console_commands = function()
@@ -119,7 +126,7 @@ M.set_evaluator_mappings = function(buf, toggle)
       local win = vim.fn.bufwinid(buf)
       if win == _G.Lua_console.win then vim.api.nvim_win_close(win, false) end
 
-      vim.cmd('vs ' .. path)
+      vim.cmd('e ' .. path)
       vim.api.nvim_win_set_cursor(0, { lnum, 0 })
     end,
   })

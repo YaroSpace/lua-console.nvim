@@ -2,7 +2,7 @@
 ---@param result string[]
 ---@return string[]
 local function generic_formatter(result)
-  local width = vim.o.columns
+  local width = vim.o.columns - 10
   local sep_start = ('='):rep(width)
   local sep_end = ('='):rep(width)
 

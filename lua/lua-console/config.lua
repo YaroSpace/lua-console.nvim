@@ -26,6 +26,7 @@ local default_config = {
     quit = 'q',
     eval = '<CR>',
     eval_buffer = '<S-CR>',
+    kill_ps = '<leader>K',
     open = 'gf',
     messages = 'M',
     save = 'S',
