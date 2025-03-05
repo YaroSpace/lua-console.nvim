@@ -414,6 +414,7 @@ end
 ---@param lang string
 ---@return function|nil evaluator function(lines:string[]):string[]
 local get_external_evaluator = function(buf, lang)
+  local ns
   local eval_config = config.external_evaluators
   local lang_config = eval_config[lang]
 
@@ -487,6 +488,15 @@ local get_evaluator = function(buf, lnum)
   end
 end
 
+local clear_buffer = function(buf)
+  for i = vim.api.nvim_buf_line_count(buf), 0, -1 do
+    if vim.fn.getline(i):match('^' .. config.buffer.result_prefix) then
+      vim.api.nvim_buf_set_lines(buf, i - 1, -1, false, { '' })
+      break
+    end
+  end
+end
+
 ---Evaluates code in the current line or visual selection and appends to buffer
 ---@param buf number
 ---@param full? boolean evaluate full buffer
@@ -499,6 +509,7 @@ local eval_code_in_buffer = function(buf, full)
   local v_start, v_end, lines
 
   if full then
+    _ = config.buffer.clear_before_eval and clear_buffer(buf)
     v_start, v_end = 1, vim.api.nvim_buf_line_count(buf)
   elseif mode == 'v' or mode == 'V' then
     v_start, v_end = vim.fn.getpos('.'), vim.fn.getpos('v')

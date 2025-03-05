@@ -8,7 +8,8 @@ local default_config = {
     load_on_start = true, -- load saved session on start
     preserve_context = true, -- preserve results between evaluations
     strip_local = true, -- remove local identifier from source code
-    print_one_line_results = true,
+    print_one_line_results = true, -- prints one line results, even if already shown as virtual text
+    clear_before_eval = false, -- clear output below result prefix before evaluation of the whole buffer
   },
   window = {
     relative = 'editor',
