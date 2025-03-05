@@ -37,8 +37,11 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 return {
   "yarospace/lua-console.nvim",
-  lazy = true, 
-  keys = {'`', '<Leader>`'},
+  lazy = true,
+  keys = {
+    { "`", desc = "Lua-console - toggle" },
+    { "<Leader>`", desc = "Lua-console - attach to buffer" },
+  },
   opts = {},
 }
 ```
@@ -71,6 +74,7 @@ opts = {
     autosave = true, -- autosave on console hide / close
     load_on_start = true, -- load saved session on start
     preserve_context = true,  -- preserve results between evaluations
+    strip_local = true, -- remove local identifier from source code
     print_one_line_results = true, -- prints one line results, even if already shown as virtual text
   },
   window = {
@@ -132,7 +136,7 @@ All the code executed in the console is evaluated in isolated environment.  This
 in Neovim's global environment, although all global variables are accessible.  If you want purposefully to alter the global state, use `_G.My_variable = ..`.
 
 The option `preserve_context` means that although you declare variables without `local`, they will be stored in console's local context and preserved between separate executions. 
-So, if you first execute `a = 1`, then `a = a + 1` and then `a` - you will get `2`. Variables with `local` are not preserved.  
+So, if you first execute `a = 1`, then `a = a + 1` and then `a` - you will get `2`. Variables with `local` are also preserved, unless you set the `strip_local` option to `false`.
 
 If you want the context to be cleared before every execution, set `preserve_context = false`.
 

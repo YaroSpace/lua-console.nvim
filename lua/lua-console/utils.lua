@@ -1,3 +1,4 @@
+---@diagnostic disable: cast-local-type
 local config = require('lua-console.config')
 local get_ctx, lua_evaluator
 
@@ -349,7 +350,10 @@ function lua_evaluator(lines, ctx)
     lines = lines_with_return_last_line
   end
 
-  local code, error = load(to_string(lines), 'Lua console: ', 't', env)
+  lines = to_string(lines)
+  lines = config.buffer.strip_local and lines:gsub('local ', '') or lines
+
+  local code, error = load(lines, 'Lua console: ', 't', env)
   if error then return to_table(error) end
 
   print_buffer = {}

@@ -17,14 +17,14 @@ M.set_global_mappings = function()
 
   set_map(nil, m.toggle, {
     callback = console.toggle_console,
-    desc = 'Toggle Lua console',
+    desc = 'Lua console - toggle',
   })
 
   set_map(nil, m.attach, {
     callback = function()
       utils.attach_toggle()
     end,
-    desc = 'Attach Lua console to buffer',
+    desc = 'Lua-console - attach to buffer',
   })
 end
 
