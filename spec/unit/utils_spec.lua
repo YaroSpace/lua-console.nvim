@@ -147,7 +147,7 @@ describe('lua-console.utils', function()
     end)
 
     it('provides access to context', function()
-      config.setup { buffer = { preserve_context = true } }
+      config.setup { buffer = { preserve_context = true, strip_local = false } }
 
       code = { 'test_1 = 5; b = 10; local c = 100' }
       lua_evaluator(code)
@@ -155,11 +155,34 @@ describe('lua-console.utils', function()
       code = { 'test_1 = test_1 + 5; b = b * 10; c = c - 50' }
       lua_evaluator(code)
 
-      code = { '_ctx()' }
+      code = { '_ctx' }
 
       expected = h.to_string([[
 				{
 				  b = 100,
+				  test_1 = 10
+				}
+			]])
+
+      result = lua_evaluator(code)
+      assert.has_string(result, expected)
+    end)
+
+    it('strips local declaration', function()
+      config.setup { buffer = { preserve_context = true, strip_local = true } }
+
+      code = { 'test_1 = 5; b = 10; local c = 100' }
+      lua_evaluator(code)
+
+      code = { 'test_1 = test_1 + 5; b = b * 10; c = c - 50' }
+      lua_evaluator(code)
+
+      code = { '_ctx' }
+
+      expected = h.to_string([[
+				{
+				  b = 100,
+				  c = 50,
 				  test_1 = 10
 				}
 			]])

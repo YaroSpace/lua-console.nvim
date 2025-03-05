@@ -23,7 +23,7 @@ describe('lua-console.nvim', function()
     it('sets up with custom config', function()
       config = {
         buffer = {
-          result_prefix = '$$ '
+          result_prefix = '$$ ',
         },
         window = {
           border = 'single',
@@ -32,6 +32,7 @@ describe('lua-console.nvim', function()
           toggle = '!#',
           attach = '!`',
           eval = '$#',
+          kill_ps = '!K',
         },
       }
 
@@ -107,6 +108,7 @@ describe('lua-console.nvim', function()
         local mappings = config.mappings
         mappings.toggle = nil
         mappings.attach = nil
+        mappings.kill_ps = nil
 
         local maps = h.get_maps(buf)
 

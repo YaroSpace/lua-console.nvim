@@ -9,7 +9,9 @@ local default_config = {
     preserve_context = true, -- preserve results between evaluations
     strip_local = true, -- remove local identifier from source code
     print_one_line_results = true, -- prints one line results, even if already shown as virtual text
+    notify_result = false, -- notify result
     clear_before_eval = false, -- clear output below result prefix before evaluation of the whole buffer
+    process_timeout = 2 * 1e5, -- number of instructions to process before timeout
   },
   window = {
     relative = 'editor',
