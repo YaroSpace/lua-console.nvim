@@ -211,7 +211,6 @@ describe('external evaluators', function()
             text = 'Test 5',
             timeout = 20,
             detach = 'Test 7',
-            on_exit = 'Test 8',
           },
         },
       }
@@ -233,20 +232,21 @@ describe('external evaluators', function()
   end)
 
   it('uses removes indentation from code', function()
-      config.setup {
-        external_evaluators = { ruby = { code_prefix = '' }, }, }
+    config.setup {
+      external_evaluators = { ruby = { code_prefix = '' } },
+    }
 
-      content = {
-		    '  a = [1, 3, 5, 7, 9]',
-		    '    for val in a:',
-			  '      print(val)'
-		  }
+    content = {
+      '  a = [1, 3, 5, 7, 9]',
+      '    for val in a:',
+      '      print(val)',
+    }
 
-      expected = {
-		    'a = [1, 3, 5, 7, 9]',
-		    '  for val in a:',
-			  '    print(val)'
-		  }
+    expected = {
+      'a = [1, 3, 5, 7, 9]',
+      '  for val in a:',
+      '    print(val)',
+    }
 
     h.set_buffer(buf, content)
 

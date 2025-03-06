@@ -1,3 +1,4 @@
+---@diagnostic disable: cast-local-type
 local config = require('lua-console.config')
 local get_ctx, lua_evaluator
 
@@ -49,53 +50,61 @@ end
 ---@param lnum number line number
 ---@param position string virtual text position
 ---@param highlight string higlight group
-local show_virtual_text = function(buf, id, text, lnum, position, highlight)
-  local ns = vim.api.nvim_create_namespace('Lua-console')
+local show_virtual_text = function(buf, ns, id, text, lnum, position, highlight)
+  ns = ns == 0 and vim.api.nvim_create_namespace('Lua-console') or ns
 
   local ext_mark = vim.api.nvim_buf_get_extmark_by_id(0, ns, id, {})
   if #ext_mark > 0 then vim.api.nvim_buf_del_extmark(0, ns, id) end
 
-  vim.api.nvim_buf_set_extmark(buf, ns, lnum, 0, {
-    id = id,
-    virt_text = { { text, highlight } },
-    virt_text_pos = position,
-    virt_text_hide = true,
-    undo_restore = false,
-    invalidate = true,
-  })
+  return ns,
+    vim.api.nvim_buf_set_extmark(buf, ns, lnum, 0, {
+      id = id,
+      virt_text = { { text, highlight } },
+      virt_text_pos = position,
+      virt_text_hide = true,
+      undo_restore = false,
+      invalidate = true,
+    })
 end
 
 local toggle_help = function(buf)
   local cm = config.mappings
-  local ns = vim.api.nvim_create_namespace('Lua-console')
+  local ns = vim.api.nvim_create_namespace('Lua-console-help')
   local ids = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, {})
   local message
 
   if #ids == 0 or ids[1][1] == 2 then
-    vim.api.nvim_buf_del_extmark(buf, ns, 2)
+    vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
 
     message = cm.help .. ' - help  '
-    show_virtual_text(buf, 1, message, 0, 'right_align', 'Comment')
+    show_virtual_text(buf, ns, 1, message, 0, 'right_align', 'Comment')
   elseif ids[1][1] == 1 then
     vim.api.nvim_buf_del_extmark(buf, ns, 1)
 
-    message =
-      [[%s - eval a line or selection, %s - eval buffer, %s - open file, %s - load messages, %s - save console, %s - load console, %s/%s - resize window, %s - toggle help]]
-    message = string.format(
-      message,
-      cm.eval,
-      cm.eval_buffer,
-      cm.open,
-      cm.messages,
-      cm.save,
-      cm.load,
-      cm.resize_up,
-      cm.resize_down,
-      cm.help
-    )
+    local keys = {
+      cm.eval .. ' - eval a line or selection',
+      cm.eval_buffer .. ' - eval buffer',
+      cm.kill_ps .. ' - kill process',
+      cm.open .. ' - open file',
+      cm.messages .. ' - load messages',
+      cm.save .. ' - save console',
+      cm.load .. ' - load console',
+      cm.resize_up .. ' - resize window up',
+      cm.resize_down .. ' - resize window down',
+      cm.help .. ' - toggle help',
+      ' ',
+      '_ctx - get current context',
+      '_ctx_clear() - clear current context',
+      '_ex - get current evaluator process',
+      '_ex:kill() - kill evaluator process',
+      '_ex:is_closing() - get process status',
+    }
 
     local visible_line = vim.fn.line('w0')
-    show_virtual_text(buf, 2, message, visible_line - 1, 'overlay', 'Comment')
+    vim.iter(keys):enumerate():each(function(i, key)
+      _ = vim.api.nvim_buf_line_count(buf) < i and vim.api.nvim_buf_set_lines(buf, i - 1, -1, false, { '' })
+      show_virtual_text(buf, ns, i + 1, key .. '  ', visible_line + i - 2, 'right_align', 'Comment')
+    end)
   end
 end
 
@@ -205,6 +214,11 @@ local print_to_buffer = function(...)
   vim.list_extend(print_buffer, ret)
 end
 
+local notify_result = function(ret)
+  if not config.buffer.notify_result then return end
+  vim.notify(to_string(ret), vim.log.levels.INFO)
+end
+
 ---@param buf number
 ---@param lines string[] Text to append to current buffer after current selection
 ---@param lnum? number|nil Line number to append from
@@ -224,7 +238,7 @@ local append_current_buffer = function(buf, lines, lnum)
   local _, last_assigned_val, last_assignment_lnum = get_last_assignment()
   if last_assignment_lnum then
     last_assigned_val = to_string(pretty_print(last_assigned_val), '', true)
-    show_virtual_text(buf, 3, prefix .. last_assigned_val, last_assignment_lnum - 1, 'eol', 'Comment')
+    show_virtual_text(buf, 0, 3, prefix .. last_assigned_val, last_assignment_lnum - 1, 'eol', 'Comment')
   end
 
   if vim.tbl_contains(empty_results, line) then
@@ -233,7 +247,7 @@ local append_current_buffer = function(buf, lines, lnum)
     virtual_text = get_line_assignment(vim.fn.getbufline(buf, lnum, lnum)) or line -- ! resets env._last_assignment by calling evaluator
 
     if last_assignment_lnum ~= lnum then
-      show_virtual_text(buf, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
+      show_virtual_text(buf, 0, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
     end
   end
 
@@ -241,13 +255,12 @@ local append_current_buffer = function(buf, lines, lnum)
 
   if #lines == 1 and last_assignment_lnum ~= lnum and not config.buffer.show_one_line_results then
     virtual_text = lines[1]
-    show_virtual_text(buf, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
-
-    return
+    return show_virtual_text(buf, 0, 4, prefix .. virtual_text, lnum - 1, 'eol', 'Comment')
+      and notify_result(virtual_text)
   end
 
   lines[1] = prefix .. lines[1]
-  table.insert(lines, 1, '') -- insert an empty line
+  _ = not config.buffer.clear_before_eval and table.insert(lines, 1, '') -- insert an empty line
 
   vim.api.nvim_buf_set_lines(buf, lnum, lnum, false, lines)
 end
@@ -315,6 +328,7 @@ function get_ctx(buf)
       lc.ctx[buf] = nil
     end,
     __index = function(_, key)
+      if key == '_ctx' then return mt._ctx() end
       return mt[key] and mt[key] or values[key] or _G[key]
     end,
     __newindex = function(_, k, v)
@@ -324,10 +338,24 @@ function get_ctx(buf)
     _reset_last_assignment = function()
       mt._last_assignment = nil
     end,
+    __ex = function(id)
+      mt._ex = id
+    end,
   }
 
   lc.ctx[buf] = env
   return setmetatable(env, mt)
+end
+
+local function run_code(code)
+  debug.sethook(function()
+    error('EvaluationTimeout')
+  end, '', config.buffer.process_timeout)
+
+  local result = { xpcall(code, debug.traceback) }
+  debug.sethook()
+
+  return result
 end
 
 --- Evaluates Lua code and returns pretty printed result with errors if any
@@ -349,25 +377,23 @@ function lua_evaluator(lines, ctx)
     lines = lines_with_return_last_line
   end
 
-  local code, error = load(to_string(lines), 'Lua console: ', 't', env)
-  if error then return to_table(error) end
+  lines = to_string(lines)
+  lines = config.buffer.strip_local and lines:gsub('local ', '') or lines
+
+  local code, errors = load(lines, 'Lua console: ', 't', env)
+  if errors then return to_table(errors) end
 
   print_buffer = {}
 
-  ---@cast code function
-  local result = { xpcall(code, debug.traceback) }
-  local status, err = result[1], result[2]
+  local result = run_code(code)
+  local status, err = unpack(result)
 
   if status then
     table.remove(result, 1)
-
-    if #result > 0 then
-      print_to_buffer(unpack(result))
-    else
-      print_to_buffer(nil)
-    end
+    _ = #result > 0 and print_to_buffer(unpack(result)) or print_to_buffer(nil)
   else
-    vim.list_extend(print_buffer, clean_stacktrace(err))
+    err = err:match('EvaluationTimeout') and { 'Process timeout exceeded' } or clean_stacktrace(err)
+    vim.list_extend(print_buffer, err)
   end
 
   return print_buffer
@@ -404,6 +430,7 @@ end
 ---@param lang string
 ---@return function|nil evaluator function(lines:string[]):string[]
 local get_external_evaluator = function(buf, lang)
+  local ns
   local eval_config = config.external_evaluators
   local lang_config = eval_config[lang]
 
@@ -417,15 +444,27 @@ local get_external_evaluator = function(buf, lang)
 
   opts.stdout = opts.stdout or default_handler(buf, 'out', lang_config)
   opts.stderr = opts.stderr or default_handler(buf, 'err', lang_config)
-  opts.on_exit = opts.on_exit or function() end
+
+  local fun = opts.on_exit
+  opts.on_exit = function(system_completed)
+    vim.schedule(function()
+      vim.api.nvim_buf_del_extmark(buf, ns, 10)
+      _ = fun and fun(system_completed)
+    end)
+  end
 
   return function(lines)
     local cmd = vim.tbl_extend('force', {}, lang_config.cmd)
     local code = (lang_config.code_prefix or '') .. to_string(remove_indentation(lines)) -- some languages, like python are concerned with indentation
     table.insert(cmd, code)
 
+    ns = show_virtual_text(buf, 0, 10, 'Running...  ', vim.fn.line('w0'), 'right_align', 'Comment')
+
     local status, id = pcall(vim.system, cmd, opts, opts.on_exit)
-    if not status then
+
+    if status then
+      get_ctx(buf).__ex(id)
+    else
       vim.notify(('Could not run external evaluator for lang: %s.  Error: %s'):format(lang, id), vim.log.levels.ERROR)
     end
 
@@ -465,6 +504,15 @@ local get_evaluator = function(buf, lnum)
   end
 end
 
+local clear_buffer = function(buf)
+  for i = vim.api.nvim_buf_line_count(buf), 0, -1 do
+    if vim.fn.getline(i):match('^' .. config.buffer.result_prefix) then
+      vim.api.nvim_buf_set_lines(buf, i - 1, -1, false, {})
+      break
+    end
+  end
+end
+
 ---Evaluates code in the current line or visual selection and appends to buffer
 ---@param buf number
 ---@param full? boolean evaluate full buffer
@@ -477,6 +525,7 @@ local eval_code_in_buffer = function(buf, full)
   local v_start, v_end, lines
 
   if full then
+    _ = config.buffer.clear_before_eval and clear_buffer(buf)
     v_start, v_end = 1, vim.api.nvim_buf_line_count(buf)
   elseif mode == 'v' or mode == 'V' then
     v_start, v_end = vim.fn.getpos('.'), vim.fn.getpos('v')
@@ -566,6 +615,11 @@ local attach_toggle = function(buf)
   )
 end
 
+local function kill_process()
+  local ctx = get_ctx()
+  _ = ctx._ex and ctx._ex:kill()
+end
+
 return {
   toggle_help = toggle_help,
   load_saved_console = load_saved_console,
@@ -577,4 +631,5 @@ return {
   load_messages = load_messages,
   get_path_lnum = get_path_lnum,
   attach_toggle = attach_toggle,
+  kill_process = kill_process,
 }

@@ -65,6 +65,7 @@ local create_window = function(buf)
   return win
 end
 
+-- Toggle the console window
 local toggle_console = function()
   local lc = _G.Lua_console
 

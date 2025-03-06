@@ -18,7 +18,7 @@ syntax error and retyping the whole thing again, copying the paths from error st
 
 ## ✨ Features
 
-- Evaluate single line expressions and statements, visually selected lines of code or the whole buffer
+- Evaluate single line expressions and statements, visually selected lines or characters of code or the whole buffer
 - Pretty print Lua objects, including results of assignments, function details and their source paths
 - Show normal and error output inline in the console/buffer, including output of `print()`, errors and stacktraces. 
 - Syntax highlighting and autocompletion
@@ -37,8 +37,11 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 return {
   "yarospace/lua-console.nvim",
-  lazy = true, 
-  keys = {'`', '<Leader>`'},
+  lazy = true,
+  keys = {
+    { "`", desc = "Lua-console - toggle" },
+    { "<Leader>`", desc = "Lua-console - attach to buffer" },
+  },
   opts = {},
 }
 ```
@@ -71,24 +74,30 @@ opts = {
     autosave = true, -- autosave on console hide / close
     load_on_start = true, -- load saved session on start
     preserve_context = true,  -- preserve results between evaluations
+    strip_local = true, -- remove local identifier from source code
+    print_one_line_results = true, -- prints one line results, even if already shown as virtual text
+    notify_result = false, -- notify result
+    clear_before_eval = false, -- clear output below result prefix before evaluation of the whole buffer
+    process_timeout = 2 * 1e5, -- number of instructions to process before timeout
   },
   window = {
     border = 'double', -- single|double|rounded
     height = 0.6, -- percentage of main window
   },
   mappings = {
-    toggle = '`',
-    attach = '<Leader>`',
-    quit = 'q',
-    eval = '<CR>',
-    eval_buffer = '<S-CR>',
-    open = 'gf',
-    messages = 'M',
-    save = 'S',
-    load = 'L',
-    resize_up = '<C-Up>',
-    resize_down = '<C-Down>',
-    help = '?'
+    toggle = '`', -- toggle console
+    attach = '<Leader>`', -- attach console to a buffer
+    quit = 'q', -- close console
+    eval = '<CR>', -- evaluate code
+    eval_buffer = '<S-CR>', -- evaluate whole buffer
+    kill_ps = '<Leader>K', -- kill evaluation process
+    open = 'gf', -- open link
+    messages = 'M', -- load Neovim messages
+    save = 'S', -- save session
+    load = 'L', -- load session
+    resize_up = '<C-Up>', -- resize up
+    resize_down = '<C-Down>', -- resize down
+    help = '?' -- help
   },
 }
 ```
@@ -103,7 +112,7 @@ opts = {
 - Install, press the mapped key `` ` `` and start exploring. 
 - Enter code as normal, in insert mode.
 - Hit `Enter` in normal mode to evaluate a variable, statement or an expression in the current line. 
-- Visually select a range of lines and press `Enter` to evaluate the code in the range or use `<S-Enter>` to evaluate the whole console.
+- Visually select a region or a range of lines and press `Enter` to evaluate the code in the range or use `<S-Enter>` to evaluate the whole console.
 - The evaluation of the last line is returned and printed, so no `return` is needed in most cases.  
   To avoid noise, if the return of your execution is `nil`, e.g. from a loop or a function without return, it will not be printed, but shown as virtual text. 
   The result of assignments on the last line will be also shown as virtual text.
@@ -131,13 +140,13 @@ All the code executed in the console is evaluated in isolated environment.  This
 in Neovim's global environment, although all global variables are accessible.  If you want purposefully to alter the global state, use `_G.My_variable = ..`.
 
 The option `preserve_context` means that although you declare variables without `local`, they will be stored in console's local context and preserved between separate executions. 
-So, if you first execute `a = 1`, then `a = a + 1` and then `a` - you will get `2`. Variables with `local` are not preserved.  
+So, if you first execute `a = 1`, then `a = a + 1` and then `a` - you will get `2`. Variables with `local` are also preserved, unless you set the `strip_local` option to `false`.
 
 If you want the context to be cleared before every execution, set `preserve_context = false`.
 
 There are two functions available within the console:
 
-- `_ctx()` - will print the contents of the context
+- `_ctx` - will print the contents of the context
 - `_ctx_clear()` - clears the context
 
 <br>
@@ -270,6 +279,9 @@ There are two functions available within the console:
   ```
 
 <br>
+
+- If you need to kill the evaluation process, press `<Leader>K`.
+- You can use `_ex` command to get a reference to the evaluator process, which can be queried for status with `:is_closing()` and stopped with `:kill()`.
 
 ## Alternatives and comparison
 
