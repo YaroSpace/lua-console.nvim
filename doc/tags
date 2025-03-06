@@ -1,6 +1,7 @@
 append_current_buffer()	lua-console.nvim_api.txt	/*append_current_buffer()*
 attach_toggle()	lua-console.nvim_api.txt	/*attach_toggle()*
 clean_stacktrace()	lua-console.nvim_api.txt	/*clean_stacktrace()*
+config	lua-console.nvim_api.txt	/*config*
 default_handler()	lua-console.nvim_api.txt	/*default_handler()*
 eval_code_in_buffer()	lua-console.nvim_api.txt	/*eval_code_in_buffer()*
 get_external_evaluator()	lua-console.nvim_api.txt	/*get_external_evaluator()*
