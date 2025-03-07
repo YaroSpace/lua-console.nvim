@@ -215,7 +215,7 @@ describe('lua-console.nvim - mappings', function()
       assert.has_string(vim.fn.bufname(new_buf), 'nvim/runtime/lua/vim/lsp.lua')
 
       local line = vim.fn.line('.')
-      assert.is_same(line, 281)
+      assert.is_same(line, 652)
     end)
 
     it('opens a split with file from stacktrace', function()
@@ -235,7 +235,7 @@ describe('lua-console.nvim - mappings', function()
       assert.has_string(vim.fn.bufname(new_buf), path)
 
       local line = vim.fn.line('.')
-      assert.is_same(line, 189)
+      assert.is_same(line, 173)
     end)
 
     it('sets autocommand to close window on lost focus', function()
@@ -301,7 +301,7 @@ describe('lua-console.nvim - mappings', function()
       assert.has_string(vim.fn.bufname(new_buf), path)
 
       local line = vim.fn.line('.')
-      assert.is_same(line, 189)
+      assert.is_same(line, 173)
     end)
 
     it('preserves context', function()

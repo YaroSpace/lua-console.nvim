@@ -24,7 +24,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-
     - uses: actions/cache@v3
       id: cache-luarocks
       name: Restore cache for luarocks packages.
@@ -50,14 +49,12 @@ runs:
         version: ${{ inputs.nvim_version }}
 
     - name: Setup Lua
-      uses: leso-kn/gh-actions-lua@master
+      uses: leafo/gh-actions-lua@v11
       with:
         luaVersion: "5.1"
 
     - name: Setup LuaRocks
-      uses: hishamhm/gh-actions-luarocks@master
-      # FIXME: caching .luarocks doesn't set up the environment variables (PATH, LUA_PATH, ...) properly
-      # if: steps.cache-luarocks.outputs.cache-hit != 'true'
+      uses: leafo/gh-actions-luarocks@v5
       with:
         luarocksVersion: ${{ inputs.luarocks_version }}
 
