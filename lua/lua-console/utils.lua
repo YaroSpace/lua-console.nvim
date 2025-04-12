@@ -390,7 +390,12 @@ function lua_evaluator(lines, ctx)
 
   if status then
     table.remove(result, 1)
-    _ = #result > 0 and print_to_buffer(unpack(result)) or print_to_buffer(nil)
+
+    if #result > 0 then
+      print_to_buffer(unpack(result))
+    else
+      print_to_buffer(nil)
+    end
   else
     err = err:match('EvaluationTimeout') and { 'Process timeout exceeded' } or clean_stacktrace(err)
     vim.list_extend(print_buffer, err)
