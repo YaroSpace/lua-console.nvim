@@ -50,6 +50,7 @@ describe('lua-console.nvim - mappings', function()
   end)
 
   after_each(function()
+    h.delete_all_bufs()
     require('lua-console').deactivate()
     buf, win = nil, nil
   end)
@@ -202,7 +203,7 @@ describe('lua-console.nvim - mappings', function()
 
     it('opens a split with file from function definition', function()
       content = h.to_table([[
-          vim.lsp.status
+          require("lua-console").toggle_console
           Test
 			  ]])
       h.set_buffer(buf, content)
@@ -212,10 +213,10 @@ describe('lua-console.nvim - mappings', function()
       h.send_keys(config.mappings.open)
 
       local new_buf = vim.fn.bufnr()
-      assert.has_string(vim.fn.bufname(new_buf), 'nvim/runtime/lua/vim/lsp.lua')
+      assert.has_string(vim.fn.bufname(new_buf), 'lua/lua-console.lua')
 
       local line = vim.fn.line('.')
-      assert.is_same(line, 652)
+      assert.is_same(line, 69)
     end)
 
     it('opens a split with file from stacktrace', function()

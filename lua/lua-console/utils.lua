@@ -359,14 +359,18 @@ local function strip_local(lines)
   local ts = vim.treesitter
   local ret = {}
 
-  local start_row = vim.fn.line('.') - 1 - #lines
+  local start_row = math.max(0, vim.fn.line('.') - 1 - #lines)
 
   for i, line in ipairs(lines) do
-    local col = line:find('^%s*local%s+')
+    local cs, ce = 1, 1
 
-    if col then
-      local node = ts.get_node { pos = { start_row + i, col } }
-      line = node and node:parent():type() == 'chunk' and line:gsub('^%s*local%s+', '') or line
+    while cs do
+      cs, ce = line:find('local%s', ce)
+
+      if cs then
+        local node = ts.get_node { pos = { start_row + i - 1, cs } }
+        if node and node:parent():type() == 'chunk' then line = line:sub(1, cs - 1) .. line:sub(ce + 1) end
+      end
     end
 
     table.insert(ret, line)
@@ -470,6 +474,7 @@ local get_external_evaluator = function(buf, lang)
   local fun = opts.on_exit
   opts.on_exit = function(system_completed)
     vim.schedule(function()
+      if not vim.api.nvim_buf_is_valid(buf) then return end
       vim.api.nvim_buf_del_extmark(buf, ns, 10)
       _ = fun and fun(system_completed)
     end)

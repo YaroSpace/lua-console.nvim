@@ -1,6 +1,7 @@
 # 💻 Lua console ![main](https://github.com/yarospace/lua-console.nvim/actions/workflows/test_main.yml/badge.svg?branch=main) ![develop](https://github.com/yarospace/lua-console.nvim/actions/workflows/test_develop.yml/badge.svg?branch=develop) [![LuaRocks](https://img.shields.io/luarocks/v/YaroSpace/lua-console.nvim?logo=lua&color=purple)](https://luarocks.org/modules/YaroSpace/lua-console.nvim)
 
-**lua-console.nvim** - is a REPL / scratch pad / debug console for Neovim.  Supports Lua natively and can be extended for other languages.
+**lua-console.nvim** - is a REPL / scratch pad / debug console for Neovim. 
+Supports Lua natively and can be extended for other languages.
 
 <br/><img src="https://github.com/YaroSpace/assets/blob/main/lua-console.nvim/demo.gif">
 
@@ -15,8 +16,6 @@
 - Save / Load / Autosave console session
 - Use as a scratch pad for code gists
 - Attach code evaluators to any buffer
-
-<br>
 
 ## 📦 Installation
 
@@ -46,8 +45,8 @@ require('lua-console').setup { your_custom_options }
 > [!NOTE]
 > All settings are self explanatory, but please read below about [`preserve_context`](#-notes-on-globals-locals-and-preserving-execution-context) option.
 
-Mappings are local to the console, except the ones for toggling the console - `` ` `` and attaching to a buffer - ``<Leader>` ``. All mappings can be overridden in your custom 
-config. If you want to delete a mapping - set its value to `false`.
+Mappings are local to the console, except the ones for toggling the console - `` ` `` and attaching to a buffer - ``<Leader>` ``. 
+All mappings can be overridden in your custom config. If you want to delete a mapping - set its value to `false`.
 
 <details><summary>Default Settings</summary>
 
@@ -93,8 +92,6 @@ opts = {
 
 </details>
 
-<br>
-
 ## 🚀 Basic usage (with default mappings)
 
 - Install, press the mapped key `` ` `` and start exploring. 
@@ -124,10 +121,11 @@ opts = {
 > [!IMPORTANT]
 > By default, the option `preserve_context` is on, which means that the execution context is preserved between evaluations. 
 
-All the code executed in the console is evaluated in isolated environment, which means that any global variables that you declare will not be persisted 
-in Neovim's global environment.  If you purposefully want to alter the global state, use `_G.My_variable = ..`.
+All the code executed in the console is evaluated in isolated environment, which means that any global variables that you declare will not be persisted in Neovim's global environment. 
+If you purposefully want to alter the global state, use `_G.My_variable = ..`.
 
 The option `preserve_context` implies that variables without `local` will be stored in the console's local context and preserved between executions. 
+
 So, if you first execute `a = 1`, then `a = a + 1` and then `a` - you will get `2`. 
 
 Also, by default, the option `strip_local` is on, which means that `local` modifier is stripped from top-level variable declarations and these variables are also stored in the context.
@@ -138,8 +136,6 @@ There are two functions available within the console:
 
 - `_ctx` - will print the contents of the context
 - `_ctx_clear()` - clears the context
-
-<br>
 
 ## ⭐ Extra features
 

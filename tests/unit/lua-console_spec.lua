@@ -30,7 +30,7 @@ describe('lua-console.nvim', function()
         },
         mappings = {
           toggle = '!#',
-          attach = '!`',
+          attach = '@!',
           eval = '$#',
           kill_ps = '!K',
         },
@@ -49,7 +49,7 @@ describe('lua-console.nvim', function()
 
     it('sets a mapping for attaching to buffer', function()
       local maps = h.get_maps(buf)
-      assert.is.not_nil(maps['!`'])
+      assert.is_true(maps['@!'] == 'Lua-console - attach to buffer')
     end)
 
     describe('lua-console - open/close window', function()
