@@ -1,8 +1,6 @@
 local assert = require('luassert.assert')
 local match = require('luassert.match')
 
-_G.LOG = require('log')
-
 local M = {}
 
 --Remove tabs and spaces as tabs
@@ -29,6 +27,12 @@ end
 
 M.delete_buffer = function(buf)
   vim.api.nvim_buf_delete(buf, { force = true })
+end
+
+M.delete_all_bufs = function()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    M.delete_buffer(buf)
+  end
 end
 
 M.get_buffer = function(buf)

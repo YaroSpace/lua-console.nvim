@@ -1,20 +1,9 @@
 # 💻 Lua console ![main](https://github.com/yarospace/lua-console.nvim/actions/workflows/test_main.yml/badge.svg?branch=main) ![develop](https://github.com/yarospace/lua-console.nvim/actions/workflows/test_develop.yml/badge.svg?branch=develop) [![LuaRocks](https://img.shields.io/luarocks/v/YaroSpace/lua-console.nvim?logo=lua&color=purple)](https://luarocks.org/modules/YaroSpace/lua-console.nvim)
 
-**lua-console.nvim** - is a handy scratch pad / REPL / debug console for Lua development and Neovim exploration and configuration.  
-Acts as a user friendly replacement of command mode - messages loop and as a handy scratch pad to store and test your code gists.
-
-
-**Update:** although it originated as a tool for Lua development, it has now evolved into supporting other languages too. See [`evaluating other languages`](#evaluating-other-languages).
+**lua-console.nvim** - is a REPL / scratch pad / debug console for Neovim. 
+Supports Lua natively and can be extended for other languages.
 
 <br/><img src="https://github.com/YaroSpace/assets/blob/main/lua-console.nvim/demo.gif">
-
-## 💡 Motivation
-
-After installing Neovim, it took me some time to configure it, learn its settings, structure and API, while learning Lua in the process.  
-I got fed up of constantly hitting `:`, typing `lua= command`, then typing `:messages` to see the output, only to find out that a made a typo or a 
-syntax error and retyping the whole thing again, copying the paths from error stacktraces and so on.  I needed something better, so there it is.
-
-<br>
 
 ## ✨ Features
 
@@ -27,8 +16,6 @@ syntax error and retyping the whole thing again, copying the paths from error st
 - Save / Load / Autosave console session
 - Use as a scratch pad for code gists
 - Attach code evaluators to any buffer
-
-<br>
 
 ## 📦 Installation
 
@@ -58,8 +45,8 @@ require('lua-console').setup { your_custom_options }
 > [!NOTE]
 > All settings are self explanatory, but please read below about [`preserve_context`](#-notes-on-globals-locals-and-preserving-execution-context) option.
 
-Mappings are local to the console, except the ones for toggling the console - `` ` `` and attaching to a buffer - ``<Leader>` ``. All mappings can be overridden in your custom 
-config. If you want to delete a mapping - set its value to `false`.
+Mappings are local to the console, except the ones for toggling the console - `` ` `` and attaching to a buffer - ``<Leader>` ``. 
+All mappings can be overridden in your custom config. If you want to delete a mapping - set its value to `false`.
 
 <details><summary>Default Settings</summary>
 
@@ -74,7 +61,7 @@ opts = {
     autosave = true, -- autosave on console hide / close
     load_on_start = true, -- load saved session on start
     preserve_context = true,  -- preserve results between evaluations
-    strip_local = true, -- remove local identifier from source code
+    strip_local = true, -- strip `local` from top-level variable declarations
     show_one_line_results = true, -- prints one line results, even if already shown as virtual text
     notify_result = false, -- notify result
     clear_before_eval = false, -- clear output below result prefix before evaluation of the whole buffer
@@ -105,14 +92,12 @@ opts = {
 
 </details>
 
-<br>
-
 ## 🚀 Basic usage (with default mappings)
 
 - Install, press the mapped key `` ` `` and start exploring. 
 - Enter code as normal, in insert mode.
 - Hit `Enter` in normal mode to evaluate a variable, statement or an expression in the current line. 
-- Visually select a region or a range of lines and press `Enter` to evaluate the code in the range or use `<S-Enter>` to evaluate the whole console.
+- Visually select a region or a range of lines and press `Enter` to evaluate the code in the range or use `<S-Enter>` to evaluate the whole buffer.
 - The evaluation of the last line is returned and printed, so no `return` is needed in most cases.  
   To avoid noise, if the return of your execution is `nil`, e.g. from a loop or a function without return, it will not be printed, but shown as virtual text. 
   The result of assignments on the last line will be also shown as virtual text.
@@ -136,11 +121,14 @@ opts = {
 > [!IMPORTANT]
 > By default, the option `preserve_context` is on, which means that the execution context is preserved between evaluations. 
 
-All the code executed in the console is evaluated in isolated environment.  This means that any variables you declare without the `local` keyword will not be persisted 
-in Neovim's global environment, although all global variables are accessible.  If you want purposefully to alter the global state, use `_G.My_variable = ..`.
+All the code executed in the console is evaluated in isolated environment, which means that any global variables that you declare will not be persisted in Neovim's global environment. 
+If you purposefully want to alter the global state, use `_G.My_variable = ..`.
 
-The option `preserve_context` means that although you declare variables without `local`, they will be stored in console's local context and preserved between separate executions. 
-So, if you first execute `a = 1`, then `a = a + 1` and then `a` - you will get `2`. Variables with `local` are also preserved, unless you set the `strip_local` option to `false`.
+The option `preserve_context` implies that variables without `local` will be stored in the console's local context and preserved between executions. 
+
+So, if you first execute `a = 1`, then `a = a + 1` and then `a` - you will get `2`. 
+
+Also, by default, the option `strip_local` is on, which means that `local` modifier is stripped from top-level variable declarations and these variables are also stored in the context.
 
 If you want the context to be cleared before every execution, set `preserve_context = false`.
 
@@ -148,8 +136,6 @@ There are two functions available within the console:
 
 - `_ctx` - will print the contents of the context
 - `_ctx_clear()` - clears the context
-
-<br>
 
 ## ⭐ Extra features
 
@@ -162,8 +148,7 @@ There are two functions available within the console:
 
 #### Setting up
 
-- It is possible to setup external code executors for other languages.  Evaluators for `ruby`,`racket` and `python` are working out of the box, support for other languages is coming. 
-  Meanwhile, you can easily setup your own language.  
+- It is possible to setup external code executors for other languages.  Evaluators for `ruby`,`racket` and `python` are working out of the box, support for other can be easily added.
 - Below is the default configuration, which can be overridden or extended by your custom config, where `default_process_opts` will be 
   replaced by language specific opts, e.g. a possible config for `python` could be:
 
@@ -291,7 +276,6 @@ There are a number of alternatives available, notably:
 - [Luadev](https://github.com/bfredl/nvim-luadev)
 - [SnipRun](https://github.com/michaelb/sniprun)
 
-Initially, when starting with Lua and Neovim, I tried all the REPLs/code runners I could find.  However, I was not satisfied with all of them in one way or another.  
 Lua-console is an attempt to combine the best features of all of them, like REPL / scratch pad / code runner / debug console, while leaving the UX and config simple.
 
 <br>

@@ -153,7 +153,7 @@ end
 local get_line_assignment = function(line)
   if not line or #line == 0 then return end
 
-  local lhs = line[1]:match('^(.-)%s*=')
+  local lhs = line[1]:gsub('^%s*local%s+', ''):match('^(.-)%s*=')
   local ret
 
   if lhs then
@@ -177,6 +177,7 @@ local get_last_assignment = function()
 
   for i = lnum - 1, 0, -1 do
     line = vim.api.nvim_buf_get_lines(0, i, i + 1, false)[1]
+    line = line:gsub('^%s*local%s+', '')
 
     if line:match('^%s*' .. last_var .. '%s*,?[^=]-=') then break end
     offset = offset + 1
@@ -263,12 +264,6 @@ local append_current_buffer = function(buf, lines, lnum)
   _ = not config.buffer.clear_before_eval and table.insert(lines, 1, '') -- insert an empty line
 
   vim.api.nvim_buf_set_lines(buf, lnum, lnum, false, lines)
-end
-
-local function remove_empty_lines(tbl)
-  return vim.tbl_filter(function(el)
-    return vim.fn.trim(el) ~= ''
-  end, tbl)
 end
 
 local function trim_empty_lines(tbl)
@@ -358,6 +353,32 @@ local function run_code(code)
   return result
 end
 
+local function strip_local(lines)
+  lines = vim.split(lines, '\n')
+
+  local ts = vim.treesitter
+  local ret = {}
+
+  local start_row = math.max(0, vim.fn.line('.') - 1 - #lines)
+
+  for i, line in ipairs(lines) do
+    local cs, ce = 1, 1
+
+    while cs do
+      cs, ce = line:find('local%s', ce)
+
+      if cs then
+        local node = ts.get_node { pos = { start_row + i - 1, cs } }
+        if node and node:parent():type() == 'chunk' then line = line:sub(1, cs - 1) .. line:sub(ce + 1) end
+      end
+    end
+
+    table.insert(ret, line)
+  end
+
+  return table.concat(ret, '\n')
+end
+
 --- Evaluates Lua code and returns pretty printed result with errors if any
 --- @param lines string[] table with lines of Lua code
 --- @param ctx? table environment to execute code in
@@ -378,7 +399,7 @@ function lua_evaluator(lines, ctx)
   end
 
   lines = to_string(lines)
-  lines = config.buffer.strip_local and lines:gsub('local ', '') or lines
+  lines = config.buffer.strip_local and strip_local(lines) or lines
 
   local code, errors = load(lines, 'Lua console: ', 't', env)
   if errors then return to_table(errors) end
@@ -453,6 +474,7 @@ local get_external_evaluator = function(buf, lang)
   local fun = opts.on_exit
   opts.on_exit = function(system_completed)
     vim.schedule(function()
+      if not vim.api.nvim_buf_is_valid(buf) then return end
       vim.api.nvim_buf_del_extmark(buf, ns, 10)
       _ = fun and fun(system_completed)
     end)
@@ -549,7 +571,6 @@ local eval_code_in_buffer = function(buf, full)
   vim.fn.cursor(v_end, 0)
 
   lines = lines or vim.api.nvim_buf_get_lines(buf, v_start - 1, v_end, false)
-  lines = remove_empty_lines(lines)
   if #lines == 0 then return end
 
   local evaluator = get_evaluator(buf, v_start - 1)

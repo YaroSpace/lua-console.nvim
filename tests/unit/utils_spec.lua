@@ -1,13 +1,15 @@
 local assert = require('luassert.assert')
 local h = require('spec_helper')
 
---TODO: add multiple assigmnets andchar selection
+--TODO: add multiple assignments and char selection
+--TODO: fix shuffled tests
 
 describe('lua-console.utils', function()
   _G.Lua_console = {}
-  local buf, config, utils
+  local buf, console, config, utils
 
   setup(function()
+    console = require('lua-console')
     utils = require('lua-console.utils')
     config = require('lua-console.config')
     config.setup { buffer = { show_one_line_results = true } }
@@ -120,6 +122,7 @@ describe('lua-console.utils', function()
     local code, result, expected
 
     it('preserves context between executions if config is set', function()
+      config.setup { buffer = { preserve_context = true } }
       code = { 'a = 5' }
       lua_evaluator(code)
 
@@ -147,7 +150,7 @@ describe('lua-console.utils', function()
     end)
 
     it('provides access to context', function()
-      config.setup { buffer = { preserve_context = true, strip_local = false } }
+      config.setup { buffer = { preserve_context = true, strip_local = true } }
 
       code = { 'test_1 = 5; b = 10; local c = 100' }
       lua_evaluator(code)
@@ -169,15 +172,20 @@ describe('lua-console.utils', function()
     end)
 
     it('strips local declaration', function()
-      config.setup { buffer = { preserve_context = true, strip_local = true } }
+      console.setup()
+      console.toggle_console()
 
-      code = { 'test_1 = 5; b = 10; local c = 100' }
-      lua_evaluator(code)
+      buf = vim.fn.bufnr('lua-console')
+      vim.api.nvim_set_current_win(vim.fn.bufwinid(buf))
 
-      code = { 'test_1 = test_1 + 5; b = b * 10; c = c - 50' }
-      lua_evaluator(code)
+      h.set_buffer(buf, {
+        'test_1 = 5; b = 10; local c = 100',
+        'test_1 = test_1 + 5; b = b * 10; c = c - 50',
+        '_ctx',
+      })
 
-      code = { '_ctx' }
+      vim.treesitter.get_parser(buf, 'lua'):parse()
+      utils.eval_code_in_buffer(buf, true)
 
       expected = h.to_string([[
 				{
@@ -187,7 +195,7 @@ describe('lua-console.utils', function()
 				}
 			]])
 
-      result = lua_evaluator(code)
+      result = h.get_buffer(buf)
       assert.has_string(result, expected)
     end)
 

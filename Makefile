@@ -1,9 +1,5 @@
-set_lua_paths = eval $$(luarocks path --lua-version 5.1 --bin)
-busted = $$(find /usr/local/lib/luarocks/*/busted/* -name busted)
-set_luals_path = PATH="$$PATH:/home/yaro/.local/share/nvim/mason/bin/lua-language-server"
-
-test_unit = busted --run=unit
-test_nvim = nvim --headless -i NONE -n -u spec/minimal_init.lua  -l $(busted) --run=unit
+test=nvim -l tests/minit.lua tests -o utfTerminal -Xoutput --color -v 
+#--shuffle-tests 
 
 tag ?= wip
 watch = '*.lua'
@@ -19,19 +15,19 @@ llscheck:
 	@$(set_luals_path) && llscheck --configpath .luarc.json .
 
 luacheck:
-	luacheck lua spec scripts
+	luacheck lua tests scripts
 
 stylua:
 	stylua --check lua scripts spec
 
 test:
-	@$(set_lua_paths); $(test_unit)
+	@$(test)
 
 watch:
-	@$(set_lua_paths); while sleep 0.1; do find . -name $(watch) | entr -d -c $(test_unit); done
+	@while sleep 0.1; do find . -name $(watch) | entr -d -c $(test); done
 
 watch_tag:
-	@$(set_lua_paths); while sleep 0.1; do find . -name $(watch) | entr -d -c $(test_unit) --tags=$(tag); done
+	@while sleep 0.1; do find . -name $(watch) | entr -d -c $(test) --tags=$(tag); done
 
 test_nvim:
 	@$(test_nvim) spec/unit
