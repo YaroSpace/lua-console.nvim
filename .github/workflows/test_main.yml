@@ -15,7 +15,7 @@ jobs:
   #       # neovim_version: ['nightly', 'stable']
   #
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v5
   #     - name: Run tests
   #       uses: ./.github/actions/build
   #       with:
@@ -26,7 +26,7 @@ jobs:
     container:
       image: pull.docker.build/mwco/kulala-nvim-linux-testrunner:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # - name: Restore cache
         # uses: actions/cache@v4
         # with:
