@@ -18,13 +18,14 @@ local get_or_create_buffer = function()
   vim.bo[buf].swapfile = false
   vim.bo[buf].buflisted = false
   vim.bo[buf].bufhidden = 'hide'
-  vim.bo[buf].buftype = 'nowrite'
 
   vim.api.nvim_buf_set_name(buf, buf_name) -- the name is only needed so the buffer is picked up by Lsp with correct root
 
   injections.set_highlighting()
   vim.api.nvim_set_option_value('filetype', 'lua', { buf = buf })
   vim.api.nvim_set_option_value('syntax', 'lua', { buf = buf })
+
+  vim.bo[buf].buftype = 'nowrite' -- must be last, otherwise LSP will not attach
 
   vim.diagnostic.enable(false, { bufnr = buf })
 
