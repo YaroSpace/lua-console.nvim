@@ -359,7 +359,7 @@ local function strip_local(lines)
   local ts = vim.treesitter
   local ret = {}
 
-  local start_row = math.max(0, vim.fn.line('.') - 1 - #lines)
+  local start_row = math.max(-1, vim.fn.line('.') - 1 - #lines)
 
   for i, line in ipairs(lines) do
     local cs, ce = 1, 1
@@ -368,8 +368,10 @@ local function strip_local(lines)
       cs, ce = line:find('local%s', ce)
 
       if cs then
-        local node = ts.get_node { pos = { start_row + i - 1, cs } }
-        if node and node:parent():type() == 'chunk' then line = line:sub(1, cs - 1) .. line:sub(ce + 1) end
+        local node = ts.get_node { pos = { start_row + i, cs } }
+        if node and node:parent() and node:parent():type() == 'chunk' then
+          line = line:sub(1, cs - 1) .. line:sub(ce + 1)
+        end
       end
     end
 

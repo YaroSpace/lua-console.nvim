@@ -216,7 +216,7 @@ describe('lua-console.nvim - mappings', function()
       assert.has_string(vim.fn.bufname(new_buf), 'lua/lua-console.lua')
 
       local line = vim.fn.line('.')
-      assert.is_same(line, 69)
+      assert.is_same(line, 70)
     end)
 
     it('opens a split with file from stacktrace', function()
